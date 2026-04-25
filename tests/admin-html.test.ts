@@ -21,6 +21,7 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain('data-action="switch"')
     expect(adminHtml).toContain('data-action="delete-account"')
     expect(adminHtml).toContain('data-action="delete-mapping"')
+    expect(adminHtml).toContain('data-action="refresh-usage"')
     expect(adminHtml).not.toContain('onclick="switchAccount')
     expect(adminHtml).not.toContain('onclick="deleteAccount')
     expect(adminHtml).not.toContain('onclick="deleteMapping')
@@ -66,5 +67,39 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain(
       "document.getElementById('proxyNotice').textContent",
     )
+  })
+
+  test("renders usage under the active account instead of a separate tab", () => {
+    expect(adminHtml).not.toContain('data-tab="usage"')
+    expect(adminHtml).not.toContain('id="tab-usage"')
+    expect(adminHtml).toContain("const usageSectionHtml =")
+    expect(adminHtml).toContain("account-usage-item")
+    expect(adminHtml).toContain("acc.isActive ? usageSectionHtml : ''")
+    expect(adminHtml).toContain("if (hasActiveAccount) void fetchUsage();")
+  })
+
+  test("renders usage summary inside the active account row", () => {
+    expect(adminHtml).toContain('id="activeUsageSummary"')
+    expect(adminHtml).toContain("function renderUsageSummary(data)")
+    expect(adminHtml).toContain("renderUsageSummary(data);")
+    expect(adminHtml).toContain("account-summary-label")
+    expect(adminHtml).toContain("Quota Reset Date")
+    expect(adminHtml).not.toContain("usage-info-row")
+  })
+
+  test("renders quota cards as one-line text items", () => {
+    expect(adminHtml).toContain(".container { max-width: 1200px;")
+    expect(adminHtml).toContain(
+      "grid-template-columns: repeat(3, minmax(0, 1fr))",
+    )
+    expect(adminHtml).toContain("usage-detail")
+    expect(adminHtml).toContain("usage-status")
+    expect(adminHtml).toContain(" · <span")
+    expect(adminHtml).toContain(" left")
+    expect(adminHtml).not.toContain("usage-header")
+    expect(adminHtml).not.toContain("usage-stats")
+    expect(adminHtml).not.toContain("usage-bar")
+    expect(adminHtml).not.toContain("usage-count")
+    expect(adminHtml).not.toContain("usage-remaining")
   })
 })

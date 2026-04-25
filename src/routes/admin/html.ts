@@ -14,7 +14,7 @@ export const adminHtml = `<!DOCTYPE html>
       min-height: 100vh;
       padding: 2rem;
     }
-    .container { max-width: 900px; margin: 0 auto; }
+    .container { max-width: 1200px; margin: 0 auto; }
     h1 {
       font-size: 1.5rem;
       margin-bottom: 1.5rem;
@@ -91,11 +91,28 @@ export const adminHtml = `<!DOCTYPE html>
     }
     .account-item.active { border-color: #238636; }
     .account-avatar { width: 40px; height: 40px; border-radius: 50%; background: #30363d; }
-    .account-info { flex: 1; }
+    .account-info { min-width: 150px; }
     .account-name { font-weight: 600; }
     .account-type { font-size: 0.75rem; color: #8b949e; text-transform: capitalize; }
     .account-badge { font-size: 0.75rem; padding: 0.125rem 0.5rem; border-radius: 9999px; background: #238636; color: #fff; }
-    .account-actions { display: flex; gap: 0.5rem; }
+    .account-actions { display: flex; gap: 0.5rem; margin-left: auto; }
+    .account-usage-summary {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(120px, 1fr));
+      gap: 0.75rem;
+      align-items: center;
+      min-width: 0;
+    }
+    .account-summary-label { color: #8b949e; font-size: 0.7rem; margin-bottom: 0.125rem; }
+    .account-summary-value { color: #c9d1d9; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .account-usage-item { list-style: none; margin: 0.5rem 0 0.75rem; }
+    .account-usage-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 1rem;
+    }
     .empty-state { text-align: center; padding: 2rem; color: #8b949e; }
     .models-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; }
     .model-card { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 0.75rem; transition: all 0.15s; }
@@ -104,21 +121,14 @@ export const adminHtml = `<!DOCTYPE html>
     .model-id { font-size: 0.75rem; color: #8b949e; font-family: monospace; }
     .model-badge { display: inline-block; font-size: 0.625rem; padding: 0.125rem 0.375rem; border-radius: 9999px; background: #21262d; color: #8b949e; margin-top: 0.5rem; }
     .model-badge.premium { background: #9333ea; color: #fff; }
-    .usage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-    .usage-card { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 1rem; }
-    .usage-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-    .usage-title { font-weight: 600; text-transform: capitalize; }
-    .usage-percent { font-size: 0.875rem; color: #8b949e; }
-    .usage-bar { height: 8px; background: #21262d; border-radius: 4px; overflow: hidden; margin-bottom: 0.5rem; }
-    .usage-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
-    .usage-bar-fill.green { background: #238636; }
-    .usage-bar-fill.yellow { background: #d29922; }
-    .usage-bar-fill.red { background: #da3633; }
-    .usage-bar-fill.blue { background: #58a6ff; }
-    .usage-stats { display: flex; justify-content: space-between; font-size: 0.75rem; color: #8b949e; }
-    .usage-info { margin-top: 1rem; padding: 0.75rem; background: #161b22; border-radius: 6px; font-size: 0.875rem; }
-    .usage-info-row { display: flex; justify-content: space-between; padding: 0.25rem 0; }
-    .usage-info-label { color: #8b949e; }
+    .usage-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+    .usage-card { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 0.75rem; }
+    .usage-title { flex: 1; font-weight: 600; text-transform: capitalize; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .usage-detail { flex-shrink: 0; font-size: 0.875rem; color: #8b949e; white-space: nowrap; }
+    .usage-status.green { color: #3fb950; }
+    .usage-status.yellow { color: #d29922; }
+    .usage-status.red { color: #f85149; }
+    .usage-status.blue { color: #58a6ff; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
     .modal-overlay.active { display: flex; }
     .modal { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 1.5rem; max-width: 400px; width: 100%; }
@@ -181,7 +191,6 @@ export const adminHtml = `<!DOCTYPE html>
       <button class="tab active" data-tab="accounts">Accounts</button>
       <button class="tab" data-tab="settings">Settings</button>
       <button class="tab" data-tab="models">Models</button>
-      <button class="tab" data-tab="usage">Usage</button>
       <button class="tab" data-tab="model-mappings">Model Mappings</button>
     </div>
     <div class="tab-content active" id="tab-accounts">
@@ -236,18 +245,6 @@ export const adminHtml = `<!DOCTYPE html>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="tab-content" id="tab-usage">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Usage Statistics</span>
-          <button class="btn btn-sm refresh-btn" id="refreshUsage">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"></path></svg>
-            Refresh
-          </button>
-        </div>
-        <div id="usageContent"><div class="empty-state">Loading usage data...</div></div>
       </div>
     </div>
     <div class="tab-content" id="tab-model-mappings">
@@ -350,7 +347,6 @@ export const adminHtml = `<!DOCTYPE html>
         document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
         if (tab.dataset.tab === 'settings') fetchSettings();
         if (tab.dataset.tab === 'models') fetchModels();
-        if (tab.dataset.tab === 'usage') fetchUsage();
         if (tab.dataset.tab === 'model-mappings') fetchMappings();
       });
     });
@@ -466,14 +462,28 @@ export const adminHtml = `<!DOCTYPE html>
         list.innerHTML = '<li class="empty-state">No accounts configured. Click "Add Account" to get started.</li>';
         return;
       }
+      const usageSectionHtml = '<li class="account-usage-item"><div class="account-usage-card">' +
+        '<div class="card-header"><span class="card-title">Usage Statistics</span>' +
+        '<button class="btn btn-sm refresh-btn" id="refreshUsage" data-action="refresh-usage">' +
+        '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"></path></svg>' +
+        'Refresh</button></div><div id="usageContent"><div class="empty-state">Loading usage data...</div></div>' +
+        '</div></li>';
+      const loadingUsageSummaryHtml = '<div class="account-usage-summary" id="activeUsageSummary">' +
+        '<div class="account-summary-item"><div class="account-summary-label">Plan</div><div class="account-summary-value">Loading...</div></div>' +
+        '<div class="account-summary-item"><div class="account-summary-label">Quota Reset Date</div><div class="account-summary-value">Loading...</div></div>' +
+        '<div class="account-summary-item"><div class="account-summary-label">Chat Enabled</div><div class="account-summary-value">Loading...</div></div>' +
+        '</div>';
+      const hasActiveAccount = data.accounts.some(acc => acc.isActive);
       list.innerHTML = data.accounts.map(acc => '<li class="account-item ' + (acc.isActive ? 'active' : '') + '">' +
         '<img class="account-avatar" src="' + escHtml(acc.avatarUrl || '') + '" alt="" onerror="this.style.display=\\'none\\'">' +
         '<div class="account-info"><div class="account-name">' + escHtml(acc.login) + '</div><div class="account-type">' + escHtml(acc.accountType) + '</div></div>' +
+        (acc.isActive ? loadingUsageSummaryHtml : '') +
         (acc.isActive ? '<span class="account-badge">Active</span>' : '') +
         '<div class="account-actions">' +
         (!acc.isActive ? '<button class="btn btn-sm" data-action="switch" data-id="' + escHtml(acc.id) + '">Switch</button>' : '') +
         '<button class="btn btn-sm btn-danger" data-action="delete-account" data-id="' + escHtml(acc.id) + '" data-login="' + escHtml(acc.login) + '">Delete</button>' +
-        '</div></li>').join('');
+        '</div></li>' + (acc.isActive ? usageSectionHtml : '')).join('');
+      if (hasActiveAccount) void fetchUsage();
     }
     async function switchAccount(id) {
       if (!confirm('Switch to this account?')) return;
@@ -522,10 +532,11 @@ export const adminHtml = `<!DOCTYPE html>
     }
     async function fetchUsage() {
       const btn = document.getElementById('refreshUsage');
-      btn.classList.add('loading');
+      if (btn) btn.classList.add('loading');
       try {
         const status = await fetchStatus();
         if (!status.authenticated) {
+          renderUsageSummary(null);
           renderCardEmptyState('usageContent', getUsageUnavailableMessage());
           return;
         }
@@ -534,11 +545,24 @@ export const adminHtml = `<!DOCTYPE html>
         const data = await res.json();
         renderUsage(data);
       } catch (e) {
+        renderUsageSummary(null);
         renderCardEmptyState('usageContent', 'Failed to load usage data. Please try again.');
-      } finally { btn.classList.remove('loading'); }
+      } finally { if (btn) btn.classList.remove('loading'); }
+    }
+    function renderUsageSummary(data) {
+      const summary = document.getElementById('activeUsageSummary');
+      if (!summary) return;
+      const plan = data?.copilot_plan || 'N/A';
+      const quotaResetDate = data?.quota_reset_date ? new Date(data.quota_reset_date).toLocaleDateString() : 'N/A';
+      const chatEnabled = data ? (data.chat_enabled ? 'Yes' : 'No') : 'N/A';
+      summary.innerHTML =
+        '<div class="account-summary-item"><div class="account-summary-label">Plan</div><div class="account-summary-value">' + escHtml(plan) + '</div></div>' +
+        '<div class="account-summary-item"><div class="account-summary-label">Quota Reset Date</div><div class="account-summary-value">' + escHtml(quotaResetDate) + '</div></div>' +
+        '<div class="account-summary-item"><div class="account-summary-label">Chat Enabled</div><div class="account-summary-value">' + escHtml(chatEnabled) + '</div></div>';
     }
     function renderUsage(data) {
       const container = document.getElementById('usageContent');
+      renderUsageSummary(data);
       if (!data.quota_snapshots) {
         container.innerHTML = '<div class="empty-state">No usage data available</div>';
         return;
@@ -552,16 +576,13 @@ export const adminHtml = `<!DOCTYPE html>
         if (percentUsed > 75) barColor = 'yellow';
         if (percentUsed > 90) barColor = 'red';
         if (quota.unlimited) barColor = 'blue';
-        html += '<div class="usage-card"><div class="usage-header"><span class="usage-title">' + key.replace(/_/g, ' ') + '</span>' +
-          '<span class="usage-percent">' + (quota.unlimited ? 'Unlimited' : percentUsed.toFixed(1) + '% used') + '</span></div>' +
-          '<div class="usage-bar"><div class="usage-bar-fill ' + barColor + '" style="width: ' + (quota.unlimited ? 100 : percentUsed) + '%"></div></div>' +
-          '<div class="usage-stats"><span>' + (quota.unlimited ? '∞' : used.toLocaleString()) + ' / ' + (quota.unlimited ? '∞' : quota.entitlement.toLocaleString()) + '</span>' +
-          '<span>' + (quota.unlimited ? '∞' : quota.remaining.toLocaleString()) + ' remaining</span></div></div>';
+        const usageDetail = quota.unlimited
+          ? '<span class="usage-status blue">Unlimited</span>'
+          : used.toLocaleString() + ' / ' + quota.entitlement.toLocaleString() + ' · <span class="usage-status ' + barColor + '">' + percentUsed.toFixed(1) + '%</span> · ' + quota.remaining.toLocaleString() + ' left';
+        html += '<div class="usage-card"><span class="usage-title">' + key.replace(/_/g, ' ') + '</span>' +
+          '<span class="usage-detail">' + usageDetail + '</span></div>';
       }
       html += '</div>';
-      html += '<div class="usage-info"><div class="usage-info-row"><span class="usage-info-label">Plan</span><span>' + (data.copilot_plan || 'Unknown') + '</span></div>' +
-        '<div class="usage-info-row"><span class="usage-info-label">Quota Reset Date</span><span>' + (data.quota_reset_date ? new Date(data.quota_reset_date).toLocaleDateString() : 'N/A') + '</span></div>' +
-        '<div class="usage-info-row"><span class="usage-info-label">Chat Enabled</span><span>' + (data.chat_enabled ? 'Yes' : 'No') + '</span></div></div>';
       container.innerHTML = html;
     }
     function showModal(show) {
@@ -624,7 +645,6 @@ export const adminHtml = `<!DOCTYPE html>
     document.getElementById('closeAuth').addEventListener('click', () => { showModal(false); showStep(1); });
     document.getElementById('startAuth').addEventListener('click', startAuth);
     document.getElementById('refreshModels').addEventListener('click', () => fetchModels(true));
-    document.getElementById('refreshUsage').addEventListener('click', fetchUsage);
     document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
     document.addEventListener('click', (e) => {
       if (!(e.target instanceof Element)) return;
@@ -637,6 +657,8 @@ export const adminHtml = `<!DOCTYPE html>
         deleteAccount(id, login || '');
       } else if (action === 'delete-mapping' && from) {
         deleteMapping(from);
+      } else if (action === 'refresh-usage') {
+        fetchUsage();
       }
     });
 
