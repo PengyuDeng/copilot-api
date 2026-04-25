@@ -13,7 +13,7 @@ import {
   LOCAL_ACCESS_MODE,
 } from "./lib/local-security"
 import { ensurePaths } from "./lib/paths"
-import { initProxyFromEnv } from "./lib/proxy"
+import { applyHttpProxyConfig, initProxyFromEnv } from "./lib/proxy"
 import { state } from "./lib/state"
 import { cacheModels, cacheVSCodeVersion } from "./lib/utils"
 
@@ -32,8 +32,18 @@ async function main(): Promise<void> {
   // Ensure config is merged with defaults at startup
   const config = mergeConfigWithDefaults()
 
-  if (PROXY_ENV) {
-    initProxyFromEnv()
+  try {
+    applyHttpProxyConfig(config.httpProxy, {
+      useEnvironmentProxy: PROXY_ENV,
+    })
+  } catch (error) {
+    consola.warn(
+      "Configured HTTP proxy ignored:",
+      error instanceof Error ? error.message : String(error),
+    )
+    if (PROXY_ENV) {
+      initProxyFromEnv()
+    }
   }
 
   state.verbose = VERBOSE

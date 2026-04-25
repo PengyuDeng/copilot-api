@@ -23,6 +23,7 @@ export interface AppConfig {
   useFunctionApplyPatch?: boolean
   rateLimitSeconds?: number
   rateLimitWait?: boolean
+  httpProxy?: string
   // Account management
   accounts?: Array<AccountConfig>
   activeAccountId?: string | null

@@ -224,9 +224,17 @@ export const adminHtml = `<!DOCTYPE html>
             <input id="rateLimitWait" type="checkbox">
             <span>Wait instead of returning HTTP 429 when rate limit is hit</span>
           </label>
-        </div>
-        <div class="notice" id="settingsNotice">
-          Loading settings...
+          <div class="notice" id="settingsNotice">
+            Loading traffic control settings...
+          </div>
+          <div>
+            <label class="label" for="httpProxy">HTTP Proxy</label>
+            <input class="input" id="httpProxy" type="url" placeholder="http://127.0.0.1:7890">
+            <p class="hint">Optional. When set, all outbound GitHub and Copilot requests use this proxy. Leave empty to connect directly.</p>
+            <div class="notice" id="proxyNotice">
+              Loading proxy settings...
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -352,20 +360,25 @@ export const adminHtml = `<!DOCTYPE html>
         const data = await res.json();
         document.getElementById('rateLimitSeconds').value = data.rateLimitSeconds ?? '';
         document.getElementById('rateLimitWait').checked = Boolean(data.rateLimitWait);
+        document.getElementById('httpProxy').value = data.httpProxy ?? '';
 
-        const notices = [];
-        notices.push('This rate limit is process-wide, not per account or per client.');
+        const rateLimitNotices = [];
+        rateLimitNotices.push('This rate limit is process-wide, not per account or per client.');
         if (data.envOverride?.rateLimitSeconds || data.envOverride?.rateLimitWait) {
           const overrides = [];
           if (data.envOverride.rateLimitSeconds) overrides.push('RATE_LIMIT');
           if (data.envOverride.rateLimitWait) overrides.push('RATE_LIMIT_WAIT');
-          notices.push('Environment variables currently override: ' + overrides.join(', ') + '.');
+          rateLimitNotices.push('Environment variables currently override: ' + overrides.join(', ') + '.');
         } else {
-          notices.push('Saved values apply immediately and persist in config.json.');
+          rateLimitNotices.push('Saved rate limit values apply immediately and persist in config.json.');
         }
-        document.getElementById('settingsNotice').textContent = notices.join(' ');
+        document.getElementById('settingsNotice').textContent = rateLimitNotices.join(' ');
+        document.getElementById('proxyNotice').textContent = data.httpProxy
+          ? 'HTTP proxy is enabled for outbound server requests. Saved proxy changes apply immediately and persist in config.json.'
+          : 'No HTTP proxy configured. Outbound server requests connect directly.';
       } catch (e) {
-        document.getElementById('settingsNotice').textContent = 'Failed to load settings.';
+        document.getElementById('settingsNotice').textContent = 'Failed to load traffic control settings.';
+        document.getElementById('proxyNotice').textContent = 'Failed to load proxy settings.';
       }
     }
     async function saveSettings() {
@@ -373,10 +386,21 @@ export const adminHtml = `<!DOCTYPE html>
       const rawValue = document.getElementById('rateLimitSeconds').value.trim();
       const rateLimitSeconds = rawValue === '' ? null : Number(rawValue);
       const rateLimitWait = document.getElementById('rateLimitWait').checked;
+      const httpProxy = document.getElementById('httpProxy').value.trim() || null;
 
       if (rawValue !== '' && (!Number.isFinite(rateLimitSeconds) || rateLimitSeconds <= 0)) {
         alert('Rate limit seconds must be greater than 0, or left empty.');
         return;
+      }
+      if (httpProxy !== null) {
+        try {
+          const proxyUrl = new URL(httpProxy);
+          if (!['http:', 'https:'].includes(proxyUrl.protocol)) throw new Error('bad protocol');
+          if ((proxyUrl.pathname && proxyUrl.pathname !== '/') || proxyUrl.search || proxyUrl.hash) throw new Error('bad path');
+        } catch (e) {
+          alert('HTTP proxy must be a valid http:// or https:// URL without path, query, or fragment.');
+          return;
+        }
       }
 
       btn.disabled = true;
@@ -384,7 +408,7 @@ export const adminHtml = `<!DOCTYPE html>
         const res = await fetch(API_BASE + '/settings', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rateLimitSeconds, rateLimitWait })
+          body: JSON.stringify({ rateLimitSeconds, rateLimitWait, httpProxy })
         });
         const data = await res.json();
         if (!res.ok) {
@@ -467,7 +491,7 @@ export const adminHtml = `<!DOCTYPE html>
         else { const data = await res.json(); alert(data.error?.message || 'Failed to delete account'); }
       } catch (e) { alert('Failed to delete account'); }
     }
-    async function fetchModels() {
+    async function fetchModels(forceRefresh = false) {
       const btn = document.getElementById('refreshModels');
       btn.classList.add('loading');
       try {
@@ -476,7 +500,7 @@ export const adminHtml = `<!DOCTYPE html>
           renderCardEmptyState('modelsList', getModelsUnavailableMessage());
           return;
         }
-        const res = await fetch('/v1/models');
+        const res = await fetch(forceRefresh ? '/v1/models?refresh=true' : '/v1/models');
         if (!res.ok) throw new Error('Failed to load models');
         const data = await res.json();
         renderModels(data);
@@ -599,7 +623,7 @@ export const adminHtml = `<!DOCTYPE html>
     document.getElementById('cancelAuth2').addEventListener('click', () => showModal(false));
     document.getElementById('closeAuth').addEventListener('click', () => { showModal(false); showStep(1); });
     document.getElementById('startAuth').addEventListener('click', startAuth);
-    document.getElementById('refreshModels').addEventListener('click', fetchModels);
+    document.getElementById('refreshModels').addEventListener('click', () => fetchModels(true));
     document.getElementById('refreshUsage').addEventListener('click', fetchUsage);
     document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
     document.addEventListener('click', (e) => {

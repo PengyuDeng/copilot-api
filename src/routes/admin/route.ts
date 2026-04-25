@@ -10,6 +10,7 @@ import {
 } from "~/lib/accounts"
 import { getConfig, saveConfig } from "~/lib/config"
 import { copilotTokenManager } from "~/lib/copilot-token-manager"
+import { applyHttpProxyConfig } from "~/lib/proxy"
 import { state } from "~/lib/state"
 import { getDeviceCode } from "~/services/github/get-device-code"
 import { getGitHubUser } from "~/services/github/get-user"
@@ -17,6 +18,12 @@ import { pollAccessTokenOnce } from "~/services/github/poll-access-token"
 
 import { adminHtml } from "./html"
 import { localOnlyMiddleware } from "./middleware"
+import {
+  buildAdminSettingsResponse,
+  didHttpProxyChange,
+  parseAdminSettingsUpdate,
+  type AdminSettingsUpdateBody,
+} from "./settings"
 
 export const adminRoutes = new Hono()
 
@@ -339,35 +346,19 @@ adminRoutes.get("/api/model-mappings", (c) => {
 
 adminRoutes.get("/api/settings", (c) => {
   const config = getConfig()
-  return c.json({
-    rateLimitSeconds: config.rateLimitSeconds ?? null,
-    rateLimitWait: config.rateLimitWait ?? false,
-    envOverride: {
-      rateLimitSeconds: process.env.RATE_LIMIT !== undefined,
-      rateLimitWait: process.env.RATE_LIMIT_WAIT !== undefined,
-    },
-  })
+  return c.json(buildAdminSettingsResponse(config))
 })
 
 adminRoutes.put("/api/settings", async (c) => {
-  const body = await c.req.json<{
-    rateLimitSeconds?: number | null
-    rateLimitWait?: boolean
-  }>()
+  const body = await c.req.json<AdminSettingsUpdateBody>()
+  const config = getConfig()
+  const result = parseAdminSettingsUpdate(body, config)
 
-  const rateLimitSeconds =
-    body.rateLimitSeconds === null || body.rateLimitSeconds === undefined ?
-      undefined
-    : body.rateLimitSeconds
-
-  if (
-    rateLimitSeconds !== undefined
-    && (!Number.isFinite(rateLimitSeconds) || rateLimitSeconds <= 0)
-  ) {
+  if (!result.success) {
     return c.json(
       {
         error: {
-          message: '"rateLimitSeconds" must be a number greater than 0',
+          message: result.message,
           type: "validation_error",
         },
       },
@@ -375,29 +366,34 @@ adminRoutes.put("/api/settings", async (c) => {
     )
   }
 
-  const rateLimitWait = Boolean(body.rateLimitWait)
-  const config = getConfig()
+  const { update } = result
+  const proxyChanged = didHttpProxyChange(config, update.httpProxy)
+
   await saveConfig({
     ...config,
-    rateLimitSeconds,
-    rateLimitWait,
+    rateLimitSeconds: update.rateLimitSeconds,
+    rateLimitWait: update.rateLimitWait,
+    httpProxy: update.httpProxy,
   })
+  applyHttpProxyConfig(update.httpProxy, {
+    useEnvironmentProxy: process.env.PROXY_ENV === "true",
+  })
+  if (proxyChanged) {
+    state.models = undefined
+  }
 
   state.rateLimitSeconds =
     process.env.RATE_LIMIT === undefined ?
-      rateLimitSeconds
+      update.rateLimitSeconds
     : state.rateLimitSeconds
   state.rateLimitWait =
     process.env.RATE_LIMIT_WAIT === undefined ?
-      rateLimitWait
+      update.rateLimitWait
     : state.rateLimitWait
 
   return c.json({
     success: true,
-    settings: {
-      rateLimitSeconds: rateLimitSeconds ?? null,
-      rateLimitWait,
-    },
+    settings: update.response,
   })
 })
 

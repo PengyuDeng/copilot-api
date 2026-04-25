@@ -40,4 +40,31 @@ describe("adminHtml hardening", () => {
       "Target model (add account to load suggestions)",
     )
   })
+
+  test("exposes HTTP proxy settings in the admin UI", () => {
+    expect(adminHtml).toContain('for="httpProxy"')
+    expect(adminHtml).toContain('id="httpProxy"')
+    expect(adminHtml).toContain('id="proxyNotice"')
+    expect(adminHtml).toContain("all outbound GitHub and Copilot requests")
+    expect(adminHtml).toContain("data.httpProxy ?? ''")
+    expect(adminHtml).toContain("/v1/models?refresh=true")
+    expect(adminHtml).toContain(
+      "JSON.stringify({ rateLimitSeconds, rateLimitWait, httpProxy })",
+    )
+    expect(adminHtml).toContain("HTTP proxy must be a valid http://")
+  })
+
+  test("keeps rate limit and proxy notices next to their own settings", () => {
+    const rateLimitNoticeIndex = adminHtml.indexOf('id="settingsNotice"')
+    const proxyInputIndex = adminHtml.indexOf('id="httpProxy"')
+
+    expect(rateLimitNoticeIndex).toBeGreaterThan(-1)
+    expect(proxyInputIndex).toBeGreaterThan(-1)
+    expect(rateLimitNoticeIndex).toBeLessThan(proxyInputIndex)
+    expect(adminHtml).toContain("Saved rate limit values apply immediately")
+    expect(adminHtml).toContain("Saved proxy changes apply immediately")
+    expect(adminHtml).toContain(
+      "document.getElementById('proxyNotice').textContent",
+    )
+  })
 })

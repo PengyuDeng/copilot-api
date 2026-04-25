@@ -6,9 +6,13 @@ import { cacheModels } from "~/lib/utils"
 
 export const modelRoutes = new Hono()
 
+export function shouldRefreshModels(value: string | undefined): boolean {
+  return value === "true" || value === "1"
+}
+
 modelRoutes.get("/", async (c) => {
   try {
-    if (!state.models) {
+    if (shouldRefreshModels(c.req.query("refresh")) || !state.models) {
       // This should be handled by startup logic, but as a fallback.
       await cacheModels()
     }
