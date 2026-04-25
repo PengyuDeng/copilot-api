@@ -95,7 +95,17 @@ export const adminHtml = `<!DOCTYPE html>
     .account-name { font-weight: 600; }
     .account-type { font-size: 0.75rem; color: #8b949e; text-transform: capitalize; }
     .account-badge { font-size: 0.75rem; padding: 0.125rem 0.5rem; border-radius: 9999px; background: #238636; color: #fff; }
-    .account-actions { display: flex; gap: 0.5rem; margin-left: auto; }
+    .account-actions { position: relative; display: flex; gap: 0.5rem; margin-left: auto; }
+    .confirm-trigger { position: relative; display: inline-flex; }
+    .confirm-popover { position: absolute; right: 0; bottom: calc(100% + 0.625rem); width: 190px; padding: 0.75rem; border-radius: 6px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); z-index: 20; }
+    .confirm-popover::after { content: ''; position: absolute; right: 24px; bottom: -6px; width: 10px; height: 10px; background: #161b22; border-right: 1px solid #30363d; border-bottom: 1px solid #30363d; transform: rotate(45deg); }
+    .confirm-popover-title { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.875rem; }
+    .confirm-popover-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: #d29922; color: #fff; font-size: 0.75rem; font-weight: 600; }
+    .confirm-popover-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .confirm-popover .btn { background: #21262d; color: #c9d1d9; border-color: #30363d; }
+    .confirm-popover .btn:hover { background: #30363d; }
+    .confirm-popover .btn-confirm-primary { background: #238636; border-color: #238636; color: #fff; }
+    .confirm-popover .btn-confirm-primary:hover { background: #2ea043; }
     .account-usage-summary {
       flex: 1;
       display: grid;
@@ -107,12 +117,7 @@ export const adminHtml = `<!DOCTYPE html>
     .account-summary-label { color: #8b949e; font-size: 0.7rem; margin-bottom: 0.125rem; }
     .account-summary-value { color: #c9d1d9; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .account-usage-item { list-style: none; margin: 0.5rem 0 0.75rem; }
-    .account-usage-card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 1rem;
-    }
+    .account-usage-card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 1rem; }
     .empty-state { text-align: center; padding: 2rem; color: #8b949e; }
     .models-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; }
     .model-card { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 0.75rem; transition: all 0.15s; }
@@ -308,6 +313,8 @@ export const adminHtml = `<!DOCTYPE html>
   <script>
     const API_BASE = '/admin/api';
     let pollInterval = null;
+    let latestAccountsData = null;
+    let pendingSwitchAccountId = null;
     let authStatus = {
       authenticated: false,
       hasAccounts: false,
@@ -456,17 +463,25 @@ export const adminHtml = `<!DOCTYPE html>
         return authStatus;
       }
     }
-    function renderAccounts(data) {
+    function renderAccounts(data, refreshUsage = true) {
+      const currentUsageContent = refreshUsage ? null : document.getElementById('usageContent')?.innerHTML;
+      const currentUsageSummary = refreshUsage ? null : document.getElementById('activeUsageSummary')?.innerHTML;
+      latestAccountsData = data;
       const list = document.getElementById('accountList');
       if (!data.accounts || data.accounts.length === 0) {
+        pendingSwitchAccountId = null;
         list.innerHTML = '<li class="empty-state">No accounts configured. Click "Add Account" to get started.</li>';
         return;
       }
+      const usageLoadingHtml = '<div class="usage-grid usage-grid-loading">' +
+        '<div class="usage-card"><span class="usage-title">Chat</span><span class="usage-detail">Loading...</span></div>' +
+        '<div class="usage-card"><span class="usage-title">Completions</span><span class="usage-detail">Loading...</span></div>' +
+        '<div class="usage-card"><span class="usage-title">Premium Interactions</span><span class="usage-detail">Loading...</span></div></div>';
       const usageSectionHtml = '<li class="account-usage-item"><div class="account-usage-card">' +
         '<div class="card-header"><span class="card-title">Usage Statistics</span>' +
         '<button class="btn btn-sm refresh-btn" id="refreshUsage" data-action="refresh-usage">' +
         '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"></path></svg>' +
-        'Refresh</button></div><div id="usageContent"><div class="empty-state">Loading usage data...</div></div>' +
+        'Refresh</button></div><div id="usageContent">' + usageLoadingHtml + '</div>' +
         '</div></li>';
       const loadingUsageSummaryHtml = '<div class="account-usage-summary" id="activeUsageSummary">' +
         '<div class="account-summary-item"><div class="account-summary-label">Plan</div><div class="account-summary-value">Loading...</div></div>' +
@@ -474,19 +489,41 @@ export const adminHtml = `<!DOCTYPE html>
         '<div class="account-summary-item"><div class="account-summary-label">Chat Enabled</div><div class="account-summary-value">Loading...</div></div>' +
         '</div>';
       const hasActiveAccount = data.accounts.some(acc => acc.isActive);
-      list.innerHTML = data.accounts.map(acc => '<li class="account-item ' + (acc.isActive ? 'active' : '') + '">' +
-        '<img class="account-avatar" src="' + escHtml(acc.avatarUrl || '') + '" alt="" onerror="this.style.display=\\'none\\'">' +
-        '<div class="account-info"><div class="account-name">' + escHtml(acc.login) + '</div><div class="account-type">' + escHtml(acc.accountType) + '</div></div>' +
-        (acc.isActive ? loadingUsageSummaryHtml : '') +
-        (acc.isActive ? '<span class="account-badge">Active</span>' : '') +
-        '<div class="account-actions">' +
-        (!acc.isActive ? '<button class="btn btn-sm" data-action="switch" data-id="' + escHtml(acc.id) + '">Switch</button>' : '') +
-        '<button class="btn btn-sm btn-danger" data-action="delete-account" data-id="' + escHtml(acc.id) + '" data-login="' + escHtml(acc.login) + '">Delete</button>' +
-        '</div></li>' + (acc.isActive ? usageSectionHtml : '')).join('');
-      if (hasActiveAccount) void fetchUsage();
+      list.innerHTML = data.accounts.map(acc => {
+        const isPendingSwitch = pendingSwitchAccountId === acc.id;
+        const switchActionHtml = acc.isActive
+          ? ''
+          : isPendingSwitch
+            ? '<span class="confirm-trigger"><button class="btn btn-sm" data-action="switch" data-id="' + escHtml(acc.id) + '">Switch</button><div class="confirm-popover" role="dialog" aria-label="Confirm account switch"><div class="confirm-popover-title"><span class="confirm-popover-icon">!</span><span>确定切换账户？</span></div><div class="confirm-popover-actions"><button class="btn btn-sm" data-action="cancel-switch">取消</button><button class="btn btn-sm btn-confirm-primary" data-action="confirm-switch" data-id="' + escHtml(acc.id) + '">确定</button></div></div></span>'
+            : '<button class="btn btn-sm" data-action="switch" data-id="' + escHtml(acc.id) + '">Switch</button>';
+        return '<li class="account-item ' + (acc.isActive ? 'active' : '') + '">' +
+          '<img class="account-avatar" src="' + escHtml(acc.avatarUrl || '') + '" alt="" onerror="this.style.display=\\'none\\'">' +
+          '<div class="account-info"><div class="account-name">' + escHtml(acc.login) + '</div><div class="account-type">' + escHtml(acc.accountType) + '</div></div>' +
+          (acc.isActive ? loadingUsageSummaryHtml : '') +
+          (acc.isActive ? '<span class="account-badge">Active</span>' : '') +
+          '<div class="account-actions">' +
+          switchActionHtml +
+          '<button class="btn btn-sm btn-danger" data-action="delete-account" data-id="' + escHtml(acc.id) + '" data-login="' + escHtml(acc.login) + '">Delete</button>' +
+          '</div></li>' + (acc.isActive ? usageSectionHtml : '');
+      }).join('');
+      if (!refreshUsage) {
+        const usageContent = document.getElementById('usageContent');
+        const usageSummary = document.getElementById('activeUsageSummary');
+        if (usageContent && currentUsageContent !== null && currentUsageContent !== undefined) usageContent.innerHTML = currentUsageContent;
+        if (usageSummary && currentUsageSummary !== null && currentUsageSummary !== undefined) usageSummary.innerHTML = currentUsageSummary;
+      }
+      if (refreshUsage && hasActiveAccount) void fetchUsage();
+    }
+    function requestSwitchAccount(id) {
+      pendingSwitchAccountId = id;
+      if (latestAccountsData) renderAccounts(latestAccountsData, false);
+    }
+    function cancelSwitchAccount() {
+      pendingSwitchAccountId = null;
+      if (latestAccountsData) renderAccounts(latestAccountsData, false);
     }
     async function switchAccount(id) {
-      if (!confirm('Switch to this account?')) return;
+      pendingSwitchAccountId = null;
       try {
         const res = await fetch(API_BASE + '/accounts/' + id + '/activate', { method: 'POST' });
         if (res.ok) { fetchAccounts(); fetchStatus(); }
@@ -524,7 +561,8 @@ export const adminHtml = `<!DOCTYPE html>
         container.innerHTML = '<div class="empty-state">No models available</div>';
         return;
       }
-      container.innerHTML = data.data.map(model => {
+      const sortedModels = [...data.data].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
+      container.innerHTML = sortedModels.map(model => {
         const isPremium = model.id.includes('o1') || model.id.includes('o3') || model.id.includes('claude');
         return '<div class="model-card"><div class="model-name">' + escHtml(model.id) + '</div><div class="model-id">' + escHtml(model.object || 'model') + '</div>' +
           (isPremium ? '<span class="model-badge premium">Premium</span>' : '') + '</div>';
@@ -649,10 +687,17 @@ export const adminHtml = `<!DOCTYPE html>
     document.addEventListener('click', (e) => {
       if (!(e.target instanceof Element)) return;
       const actionEl = e.target.closest('[data-action]');
-      if (!actionEl) return;
+      if (!actionEl) {
+        if (pendingSwitchAccountId && !e.target.closest('.confirm-trigger')) cancelSwitchAccount();
+        return;
+      }
       const { action, id, login, from } = actionEl.dataset;
       if (action === 'switch' && id) {
+        requestSwitchAccount(id);
+      } else if (action === 'confirm-switch' && id) {
         switchAccount(id);
+      } else if (action === 'cancel-switch') {
+        cancelSwitchAccount();
       } else if (action === 'delete-account' && id) {
         deleteAccount(id, login || '');
       } else if (action === 'delete-mapping' && from) {

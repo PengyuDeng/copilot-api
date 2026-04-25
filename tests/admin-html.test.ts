@@ -19,12 +19,32 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain("document.addEventListener('click'")
     expect(adminHtml).toContain("closest('[data-action]')")
     expect(adminHtml).toContain('data-action="switch"')
+    expect(adminHtml).toContain('data-action="confirm-switch"')
+    expect(adminHtml).toContain('data-action="cancel-switch"')
     expect(adminHtml).toContain('data-action="delete-account"')
     expect(adminHtml).toContain('data-action="delete-mapping"')
     expect(adminHtml).toContain('data-action="refresh-usage"')
     expect(adminHtml).not.toContain('onclick="switchAccount')
     expect(adminHtml).not.toContain('onclick="deleteAccount')
     expect(adminHtml).not.toContain('onclick="deleteMapping')
+  })
+
+  test("uses popover confirmation when switching accounts", () => {
+    expect(adminHtml).toContain("let pendingSwitchAccountId = null")
+    expect(adminHtml).toContain("function requestSwitchAccount(id)")
+    expect(adminHtml).toContain("function cancelSwitchAccount()")
+    expect(adminHtml).toContain("confirm-popover")
+    expect(adminHtml).toContain("background: #161b22")
+    expect(adminHtml).toContain("color: #c9d1d9")
+    expect(adminHtml).toContain("border: 1px solid #30363d")
+    expect(adminHtml).toContain('role="dialog"')
+    expect(adminHtml).toContain("确定切换账户？")
+    expect(adminHtml).toContain("btn-confirm-primary")
+    expect(adminHtml).toContain("currentUsageContent")
+    expect(adminHtml).toContain("requestSwitchAccount(id);")
+    expect(adminHtml).toContain("switchAccount(id);")
+    expect(adminHtml).toContain("cancelSwitchAccount();")
+    expect(adminHtml).not.toContain("Switch to this account?")
   })
 
   test("avoids unauthenticated resource fetch noise and keeps manual mapping entry available", () => {
@@ -75,7 +95,17 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain("const usageSectionHtml =")
     expect(adminHtml).toContain("account-usage-item")
     expect(adminHtml).toContain("acc.isActive ? usageSectionHtml : ''")
-    expect(adminHtml).toContain("if (hasActiveAccount) void fetchUsage();")
+    expect(adminHtml).toContain(
+      "if (refreshUsage && hasActiveAccount) void fetchUsage();",
+    )
+  })
+
+  test("sorts available models by name before rendering", () => {
+    expect(adminHtml).toContain("const sortedModels = [...data.data].sort")
+    expect(adminHtml).toContain("a.id.localeCompare(b.id")
+    expect(adminHtml).toContain("numeric: true")
+    expect(adminHtml).toContain("container.innerHTML = sortedModels.map")
+    expect(adminHtml).not.toContain("container.innerHTML = data.data.map")
   })
 
   test("renders usage summary inside the active account row", () => {
@@ -94,6 +124,9 @@ describe("adminHtml hardening", () => {
     )
     expect(adminHtml).toContain("usage-detail")
     expect(adminHtml).toContain("usage-status")
+    expect(adminHtml).toContain("const usageLoadingHtml =")
+    expect(adminHtml).toContain("usage-grid usage-grid-loading")
+    expect(adminHtml).not.toContain("Loading usage data...")
     expect(adminHtml).toContain(" · <span")
     expect(adminHtml).toContain(" left")
     expect(adminHtml).not.toContain("usage-header")
