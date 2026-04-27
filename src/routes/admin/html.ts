@@ -494,7 +494,7 @@ export const adminHtml = `<!DOCTYPE html>
         const switchActionHtml = acc.isActive
           ? ''
           : isPendingSwitch
-            ? '<span class="confirm-trigger"><button class="btn btn-sm" data-action="switch" data-id="' + escHtml(acc.id) + '">Switch</button><div class="confirm-popover" role="dialog" aria-label="Confirm account switch"><div class="confirm-popover-title"><span class="confirm-popover-icon">!</span><span>确定切换账户？</span></div><div class="confirm-popover-actions"><button class="btn btn-sm" data-action="cancel-switch">取消</button><button class="btn btn-sm btn-confirm-primary" data-action="confirm-switch" data-id="' + escHtml(acc.id) + '">确定</button></div></div></span>'
+            ? '<span class="confirm-trigger"><button class="btn btn-sm" data-action="switch" data-id="' + escHtml(acc.id) + '">Switch</button><div class="confirm-popover" role="dialog" aria-label="Confirm account switch"><div class="confirm-popover-title"><span class="confirm-popover-icon">!</span><span>Switch account?</span></div><div class="confirm-popover-actions"><button class="btn btn-sm" data-action="cancel-switch">Cancel</button><button class="btn btn-sm btn-confirm-primary" data-action="confirm-switch" data-id="' + escHtml(acc.id) + '">Confirm</button></div></div></span>'
             : '<button class="btn btn-sm" data-action="switch" data-id="' + escHtml(acc.id) + '">Switch</button>';
         return '<li class="account-item ' + (acc.isActive ? 'active' : '') + '">' +
           '<img class="account-avatar" src="' + escHtml(acc.avatarUrl || '') + '" alt="" onerror="this.style.display=\\'none\\'">' +
