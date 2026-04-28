@@ -1,5 +1,3 @@
-import type { FetchFunction } from "@ai-sdk/provider-utils"
-
 import consola from "consola"
 
 import type { SubagentMarker } from "~/routes/messages/subagent-marker"
@@ -9,45 +7,19 @@ import {
   copilotHeaders,
   prepareSubagentHeaders,
 } from "~/lib/api-config"
+import {
+  getCopilotTokenForChannel,
+  refreshCopilotTokenForChannel,
+  selectCopilotChannel,
+  type CopilotChannelSelection,
+} from "~/lib/copilot-channel-router"
 import { ContextOverflowError, isContextOverflow } from "~/lib/copilot-error"
 import { copilotTokenManager } from "~/lib/copilot-token-manager"
 import { HTTPError } from "~/lib/error"
+import { addRequestLog, type RequestLogChannel } from "~/lib/request-log"
 import { state } from "~/lib/state"
 
-/**
- * Create a custom fetch that handles Copilot token refresh on 401/403.
- * When the initial request fails with 401/403, it clears the token,
- * gets a fresh one, and retries with the updated Authorization header.
- */
-function createCopilotFetch(): FetchFunction {
-  const RETRYABLE_STATUSES = new Set([401, 403])
-
-  const copilotFetch = async (
-    input: Parameters<typeof fetch>[0],
-    init?: Parameters<typeof fetch>[1],
-  ) => {
-    await copilotTokenManager.getToken()
-
-    const response = await globalThis.fetch(input, init)
-
-    if (RETRYABLE_STATUSES.has(response.status)) {
-      copilotTokenManager.clear()
-      await copilotTokenManager.getToken()
-
-      // Replace Authorization header with new token
-      const currentHeaders = new Headers(init?.headers)
-      currentHeaders.set("Authorization", `Bearer ${state.copilotToken}`)
-      return globalThis.fetch(input, {
-        ...init,
-        headers: Object.fromEntries(currentHeaders.entries()),
-      })
-    }
-
-    return response
-  }
-
-  return copilotFetch as FetchFunction
-}
+const RETRYABLE_STATUSES = new Set([401, 403])
 
 // ─── Low-level request function ──────────────────────────────────────────────
 
@@ -84,8 +56,135 @@ export interface CopilotRequestOptions {
 export async function copilotRequest(
   options: CopilotRequestOptions,
 ): Promise<Response> {
+  const method = options.method ?? "POST"
+  const selection = selectCopilotChannel(options.sessionId)
+  const startedAt = Date.now()
+  let responseStatus: number | undefined
+  let ok = false
+  let errorMessage: string | undefined
+
+  try {
+    const token = await getRequestToken(selection)
+    const headers = buildRequestHeaders(selection, token, options)
+    const url = `${copilotBaseUrl(getChannelState(selection, token))}${options.path}`
+
+    let response = await globalThis.fetch(url, {
+      method,
+      headers,
+      ...(options.body !== undefined && {
+        body: JSON.stringify(options.body),
+      }),
+    })
+
+    responseStatus = response.status
+
+    if (RETRYABLE_STATUSES.has(response.status)) {
+      const refreshedToken = await refreshRequestToken(selection)
+      const retryHeaders = buildRequestHeaders(
+        selection,
+        refreshedToken,
+        options,
+      )
+      response = await globalThis.fetch(url, {
+        method,
+        headers: retryHeaders,
+        ...(options.body !== undefined && {
+          body: JSON.stringify(options.body),
+        }),
+      })
+      responseStatus = response.status
+    }
+
+    if (!response.ok) {
+      const errorText = await response
+        .clone()
+        .text()
+        .catch(() => "")
+      if (isContextOverflow(errorText)) {
+        errorMessage = "Context overflow"
+        throw new ContextOverflowError(errorText, response.status, errorText)
+      }
+      errorMessage = `Failed to request ${options.path}`
+      consola.error(`Failed to request ${options.path}`, response)
+      throw new HTTPError(`Failed to request ${options.path}`, response)
+    }
+
+    ok = true
+    return response
+  } catch (error) {
+    errorMessage ??= error instanceof Error ? error.message : String(error)
+    throw error
+  } finally {
+    addRequestLog({
+      method,
+      path: options.path,
+      model: getRequestModel(options.body),
+      sessionId: options.sessionId,
+      channel: getRequestLogChannel(selection),
+      status: responseStatus,
+      ok,
+      durationMs: Date.now() - startedAt,
+      error: errorMessage,
+    })
+  }
+}
+
+async function getRequestToken(
+  selection: CopilotChannelSelection,
+): Promise<string> {
+  if (selection.mode === "legacy") {
+    return await copilotTokenManager.getToken()
+  }
+
+  const token = await getCopilotTokenForChannel(selection)
+  if (!token) {
+    throw new Error(
+      `Failed to obtain Copilot token for ${selection.account.login}`,
+    )
+  }
+  return token
+}
+
+async function refreshRequestToken(
+  selection: CopilotChannelSelection,
+): Promise<string> {
+  if (selection.mode === "legacy") {
+    copilotTokenManager.clear()
+    return await copilotTokenManager.getToken()
+  }
+
+  const token = await refreshCopilotTokenForChannel(selection)
+  if (!token) {
+    throw new Error(
+      `Failed to refresh Copilot token for ${selection.account.login}`,
+    )
+  }
+  return token
+}
+
+function getChannelState(selection: CopilotChannelSelection, token: string) {
+  if (selection.mode === "account") {
+    return {
+      accountType: selection.account.accountType,
+      copilotToken: token,
+      vsCodeVersion: state.vsCodeVersion,
+    }
+  }
+
+  return {
+    accountType: state.accountType,
+    copilotToken: token,
+    vsCodeVersion: state.vsCodeVersion,
+  }
+}
+
+function buildRequestHeaders(
+  selection: CopilotChannelSelection,
+  token: string,
+  options: CopilotRequestOptions,
+): Record<string, string> {
   const headers: Record<string, string> = {
-    ...copilotHeaders(state, options.vision),
+    ...copilotHeaders(getChannelState(selection, token), options.vision),
   }
 
   if (options.initiator) {
@@ -102,29 +201,30 @@ export async function copilotRequest(
     Object.assign(headers, options.extraHeaders)
   }
 
-  const copilotFetch = createCopilotFetch()
-  const url = `${copilotBaseUrl(state)}${options.path}`
-  const method = options.method ?? "POST"
+  return headers
+}
 
-  const response = await copilotFetch(url, {
-    method,
-    headers,
-    ...(options.body !== undefined && {
-      body: JSON.stringify(options.body),
-    }),
-  })
+function getRequestModel(body: unknown): string | undefined {
+  if (!body || typeof body !== "object") return undefined
+  const model = (body as { model?: unknown }).model
+  return typeof model === "string" ? model : undefined
+}
 
-  if (!response.ok) {
-    const errorText = await response
-      .clone()
-      .text()
-      .catch(() => "")
-    if (isContextOverflow(errorText)) {
-      throw new ContextOverflowError(errorText, response.status, errorText)
+function getRequestLogChannel(
+  selection: CopilotChannelSelection,
+): RequestLogChannel {
+  if (selection.mode === "account") {
+    return {
+      mode: "account",
+      accountId: selection.account.id,
+      login: selection.account.login,
+      accountType: selection.account.accountType,
+      reason: selection.reason,
     }
-    consola.error(`Failed to request ${options.path}`, response)
-    throw new HTTPError(`Failed to request ${options.path}`, response)
   }
 
-  return response
+  return {
+    mode: "legacy",
+    reason: selection.reason,
+  }
 }

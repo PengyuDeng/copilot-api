@@ -1,6 +1,15 @@
 import { randomUUID } from "node:crypto"
 
-import type { State } from "./state"
+interface CopilotHeaderState {
+  accountType: string
+  copilotToken?: string
+  vsCodeVersion?: string
+}
+
+interface GitHubHeaderState {
+  githubToken?: string
+  vsCodeVersion?: string
+}
 
 export const standardHeaders = () => ({
   "content-type": "application/json",
@@ -13,11 +22,16 @@ const USER_AGENT = `GitHubCopilotChat/${COPILOT_VERSION}`
 
 const API_VERSION = "2025-10-01"
 
-export const copilotBaseUrl = (state: State) =>
+export const copilotBaseUrl = (
+  state: Pick<CopilotHeaderState, "accountType">,
+) =>
   state.accountType === "individual" ?
     "https://api.githubcopilot.com"
   : `https://api.${state.accountType}.githubcopilot.com`
-export const copilotHeaders = (state: State, vision: boolean = false) => {
+export const copilotHeaders = (
+  state: CopilotHeaderState,
+  vision: boolean = false,
+) => {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${state.copilotToken}`,
     "content-type": standardHeaders()["content-type"],
@@ -52,7 +66,7 @@ export const prepareSubagentHeaders = (
 }
 
 export const GITHUB_API_BASE_URL = "https://api.github.com"
-export const githubHeaders = (state: State) => ({
+export const githubHeaders = (state: GitHubHeaderState) => ({
   ...standardHeaders(),
   authorization: `token ${state.githubToken}`,
   "editor-version": `vscode/${state.vsCodeVersion}`,

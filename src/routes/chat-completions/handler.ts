@@ -6,6 +6,7 @@ import { streamSSE, type SSEMessage } from "hono/streaming"
 import { getMappedModel } from "~/lib/config"
 import { createHandlerLogger } from "~/lib/logger"
 import { checkRateLimit } from "~/lib/rate-limit"
+import { getHeaderSessionId } from "~/lib/session"
 import { state } from "~/lib/state"
 import { getTokenCount } from "~/lib/tokenizer"
 import { isNullish } from "~/lib/utils"
@@ -51,7 +52,9 @@ export async function handleCompletion(c: Context) {
     logger.debug("Set max_tokens to:", JSON.stringify(payload.max_tokens))
   }
 
-  const response = await createChatCompletions(payload)
+  const response = await createChatCompletions(payload, {
+    sessionId: getHeaderSessionId(c),
+  })
 
   if (isNonStreaming(response)) {
     response.created = getEpochSec()

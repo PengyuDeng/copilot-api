@@ -9,8 +9,10 @@ import {
   type Account,
 } from "~/lib/accounts"
 import { getConfig, saveConfig } from "~/lib/config"
+import { clearCopilotChannel } from "~/lib/copilot-channel-router"
 import { copilotTokenManager } from "~/lib/copilot-token-manager"
 import { applyHttpProxyConfig } from "~/lib/proxy"
+import { getRequestLogs, REQUEST_LOG_LIMIT } from "~/lib/request-log"
 import { state } from "~/lib/state"
 import { getDeviceCode } from "~/services/github/get-device-code"
 import { getGitHubUser } from "~/services/github/get-user"
@@ -136,6 +138,8 @@ adminRoutes.delete("/api/accounts/:id", async (c) => {
     )
   }
 
+  clearCopilotChannel(accountId)
+
   // If we removed the current account, update state
   const activeAccount = await getActiveAccount()
   if (activeAccount) {
@@ -226,6 +230,7 @@ async function createAccountFromToken(
   }
 
   await addAccount(account)
+  clearCopilotChannel(account.id)
 
   state.githubToken = token
   state.accountType = account.accountType
@@ -347,6 +352,13 @@ adminRoutes.get("/api/model-mappings", (c) => {
 adminRoutes.get("/api/settings", (c) => {
   const config = getConfig()
   return c.json(buildAdminSettingsResponse(config))
+})
+
+adminRoutes.get("/api/request-logs", (c) => {
+  return c.json({
+    limit: REQUEST_LOG_LIMIT,
+    logs: getRequestLogs(),
+  })
 })
 
 adminRoutes.put("/api/settings", async (c) => {

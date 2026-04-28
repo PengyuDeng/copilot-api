@@ -1,8 +1,18 @@
 import type { ModelsResponse } from "~/services/copilot/get-models"
 
+export interface RuntimeAccount {
+  id: string
+  login: string
+  avatarUrl: string
+  token: string
+  accountType: "individual" | "business" | "enterprise"
+  createdAt: string
+}
+
 export interface State {
   githubToken?: string
   copilotToken?: string
+  accounts?: Array<RuntimeAccount>
 
   accountType: string
   models?: ModelsResponse

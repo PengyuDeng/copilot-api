@@ -13,40 +13,41 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain("escHtml(from)")
     expect(adminHtml).toContain("escHtml(to)")
     expect(adminHtml).toContain("escHtml(m.id)")
+    expect(adminHtml).toContain("escHtml(log.method + ' ' + log.path)")
+    expect(adminHtml).toContain("escHtml(channel)")
   })
 
   test("uses delegated data-action handlers instead of onclick strings", () => {
     expect(adminHtml).toContain("document.addEventListener('click'")
     expect(adminHtml).toContain("closest('[data-action]')")
-    expect(adminHtml).toContain('data-action="switch"')
-    expect(adminHtml).toContain('data-action="confirm-switch"')
-    expect(adminHtml).toContain('data-action="cancel-switch"')
     expect(adminHtml).toContain('data-action="delete-account"')
     expect(adminHtml).toContain('data-action="delete-mapping"')
-    expect(adminHtml).toContain('data-action="refresh-usage"')
     expect(adminHtml).not.toContain('onclick="switchAccount')
     expect(adminHtml).not.toContain('onclick="deleteAccount')
     expect(adminHtml).not.toContain('onclick="deleteMapping')
   })
 
-  test("uses popover confirmation when switching accounts", () => {
-    expect(adminHtml).toContain("let pendingSwitchAccountId = null")
-    expect(adminHtml).toContain("function requestSwitchAccount(id)")
-    expect(adminHtml).toContain("function cancelSwitchAccount()")
-    expect(adminHtml).toContain("confirm-popover")
-    expect(adminHtml).toContain("background: #161b22")
-    expect(adminHtml).toContain("color: #c9d1d9")
-    expect(adminHtml).toContain("border: 1px solid #30363d")
-    expect(adminHtml).toContain('role="dialog"')
-    expect(adminHtml).toContain("Switch account?")
-    expect(adminHtml).toContain("Cancel")
-    expect(adminHtml).toContain("Confirm")
-    expect(adminHtml).toContain("btn-confirm-primary")
-    expect(adminHtml).toContain("currentUsageContent")
-    expect(adminHtml).toContain("requestSwitchAccount(id);")
-    expect(adminHtml).toContain("switchAccount(id);")
-    expect(adminHtml).toContain("cancelSwitchAccount();")
-    expect(adminHtml).not.toContain("Switch to this account?")
+  test("shows account activity status instead of binary account switching", () => {
+    const actionsIndex = adminHtml.indexOf(
+      "'<div class=\"account-actions\">' +",
+    )
+    const badgeIndex = adminHtml.indexOf(
+      "'<span class=\"account-badge\">Active</span>' +",
+    )
+    const deleteIndex = adminHtml.indexOf(
+      '\'<button class="btn btn-sm btn-danger"',
+    )
+
+    expect(actionsIndex).toBeGreaterThan(-1)
+    expect(badgeIndex).toBeGreaterThan(actionsIndex)
+    expect(deleteIndex).toBeGreaterThan(badgeIndex)
+    expect(adminHtml).toContain("account-badge")
+    expect(adminHtml).not.toContain("Switch account?")
+    expect(adminHtml).not.toContain('data-action="switch"')
+    expect(adminHtml).not.toContain('data-action="confirm-switch"')
+    expect(adminHtml).not.toContain('data-action="cancel-switch"')
+    expect(adminHtml).not.toContain("function requestSwitchAccount")
+    expect(adminHtml).not.toContain("function switchAccount")
   })
 
   test("avoids unauthenticated resource fetch noise and keeps manual mapping entry available", () => {
@@ -54,7 +55,6 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain("let authStatus =")
     expect(adminHtml).toContain("const status = await fetchStatus();")
     expect(adminHtml).toContain("Add a GitHub account to load models.")
-    expect(adminHtml).toContain("Add a GitHub account to load usage data.")
     expect(adminHtml).toContain(
       'id="mappingTo" list="mappingToOptions" placeholder="Target model"',
     )
@@ -91,15 +91,18 @@ describe("adminHtml hardening", () => {
     )
   })
 
-  test("renders usage under the active account instead of a separate tab", () => {
+  test("does not render account quota usage in the admin UI", () => {
     expect(adminHtml).not.toContain('data-tab="usage"')
     expect(adminHtml).not.toContain('id="tab-usage"')
-    expect(adminHtml).toContain("const usageSectionHtml =")
-    expect(adminHtml).toContain("account-usage-item")
-    expect(adminHtml).toContain("acc.isActive ? usageSectionHtml : ''")
-    expect(adminHtml).toContain(
-      "if (refreshUsage && hasActiveAccount) void fetchUsage();",
-    )
+    expect(adminHtml).not.toContain("Usage Statistics")
+    expect(adminHtml).not.toContain("Quota Reset Date")
+    expect(adminHtml).not.toContain("Chat Enabled")
+    expect(adminHtml).not.toContain("activeUsageSummary")
+    expect(adminHtml).not.toContain("usageContent")
+    expect(adminHtml).not.toContain("fetchUsage")
+    expect(adminHtml).not.toContain("renderUsage")
+    expect(adminHtml).not.toContain('data-action="refresh-usage"')
+    expect(adminHtml).not.toContain("fetch('/usage')")
   })
 
   test("sorts available models by name before rendering", () => {
@@ -110,31 +113,32 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).not.toContain("container.innerHTML = data.data.map")
   })
 
-  test("renders usage summary inside the active account row", () => {
-    expect(adminHtml).toContain('id="activeUsageSummary"')
-    expect(adminHtml).toContain("function renderUsageSummary(data)")
-    expect(adminHtml).toContain("renderUsageSummary(data);")
-    expect(adminHtml).toContain("account-summary-label")
-    expect(adminHtml).toContain("Quota Reset Date")
-    expect(adminHtml).not.toContain("usage-info-row")
-  })
-
-  test("renders quota cards as one-line text items", () => {
-    expect(adminHtml).toContain(".container { max-width: 1200px;")
-    expect(adminHtml).toContain(
-      "grid-template-columns: repeat(3, minmax(0, 1fr))",
+  test("renders request logs as a separate tab next to models", () => {
+    const modelsTabIndex = adminHtml.indexOf('data-tab="models"')
+    const requestLogsTabIndex = adminHtml.indexOf('data-tab="request-logs"')
+    const mappingsTabIndex = adminHtml.indexOf('data-tab="model-mappings"')
+    const accountsPanelStart = adminHtml.indexOf('id="tab-accounts"')
+    const modelsPanelStart = adminHtml.indexOf('id="tab-models"')
+    const accountsPanelHtml = adminHtml.slice(
+      accountsPanelStart,
+      modelsPanelStart,
     )
-    expect(adminHtml).toContain("usage-detail")
-    expect(adminHtml).toContain("usage-status")
-    expect(adminHtml).toContain("const usageLoadingHtml =")
-    expect(adminHtml).toContain("usage-grid usage-grid-loading")
-    expect(adminHtml).not.toContain("Loading usage data...")
-    expect(adminHtml).toContain(" · <span")
-    expect(adminHtml).toContain(" left")
-    expect(adminHtml).not.toContain("usage-header")
-    expect(adminHtml).not.toContain("usage-stats")
-    expect(adminHtml).not.toContain("usage-bar")
-    expect(adminHtml).not.toContain("usage-count")
-    expect(adminHtml).not.toContain("usage-remaining")
+
+    expect(modelsTabIndex).toBeGreaterThan(-1)
+    expect(requestLogsTabIndex).toBeGreaterThan(modelsTabIndex)
+    expect(mappingsTabIndex).toBeGreaterThan(requestLogsTabIndex)
+    expect(accountsPanelHtml).not.toContain('id="requestLogs"')
+    expect(adminHtml).toContain('id="tab-request-logs"')
+    expect(adminHtml).toContain("Request Logs")
+    expect(adminHtml).toContain('id="requestLogs"')
+    expect(adminHtml).toContain('id="refreshRequestLogs"')
+    expect(adminHtml).toContain("function fetchRequestLogs()")
+    expect(adminHtml).toContain("API_BASE + '/request-logs'")
+    expect(adminHtml).toContain("function renderRequestLogs(logs)")
+    expect(adminHtml).toContain("tab.dataset.tab === 'request-logs'")
+    expect(adminHtml).not.toContain("Recent Requests")
+    expect(adminHtml).not.toContain("fetchAccounts(); fetchRequestLogs();")
+    expect(adminHtml).toContain("Legacy active account")
+    expect(adminHtml).toContain("request-log-channel")
   })
 })

@@ -1,9 +1,17 @@
 import { copilotRequest } from "~/services/copilot-provider/create-provider"
 
-export const createEmbeddings = async (payload: EmbeddingRequest) => {
+interface CreateEmbeddingsOptions {
+  sessionId?: string
+}
+
+export const createEmbeddings = async (
+  payload: EmbeddingRequest,
+  options: CreateEmbeddingsOptions = {},
+) => {
   const response = await copilotRequest({
     path: "/embeddings",
     body: payload,
+    sessionId: options.sessionId,
   })
 
   return (await response.json()) as EmbeddingResponse

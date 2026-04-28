@@ -3,7 +3,7 @@
 import consola from "consola"
 import { serve, type ServerHandler } from "srvx"
 
-import { getActiveAccount } from "./lib/accounts"
+import { getAccounts, getActiveAccount } from "./lib/accounts"
 import { mergeConfigWithDefaults } from "./lib/config"
 import { copilotTokenManager } from "./lib/copilot-token-manager"
 import {
@@ -61,6 +61,9 @@ async function main(): Promise<void> {
 
   await ensurePaths()
   await cacheVSCodeVersion()
+
+  const accountsData = await getAccounts()
+  state.accounts = accountsData.accounts
 
   // Try to load active account from config
   const activeAccount = await getActiveAccount()

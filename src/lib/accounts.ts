@@ -1,6 +1,7 @@
 import consola from "consola"
 
 import { type AccountConfig, getConfig, saveConfig } from "./config"
+import { state } from "./state"
 
 export type Account = AccountConfig
 
@@ -34,6 +35,7 @@ async function saveAccounts(data: AccountsData): Promise<void> {
   const config = getConfig()
   config.accounts = data.accounts
   config.activeAccountId = data.activeAccountId
+  state.accounts = data.accounts
   await saveConfig(config)
 }
 

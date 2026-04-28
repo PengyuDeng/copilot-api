@@ -5,6 +5,7 @@ import { streamSSE } from "hono/streaming"
 import { getConfig, getMappedModel } from "~/lib/config"
 import { createHandlerLogger } from "~/lib/logger"
 import { checkRateLimit } from "~/lib/rate-limit"
+import { getHeaderSessionId } from "~/lib/session"
 import { state } from "~/lib/state"
 import {
   createResponses,
@@ -70,7 +71,11 @@ export const handleResponses = async (c: Context) => {
 
   const { vision, initiator } = getResponsesRequestOptions(payload)
 
-  const response = await createResponses(payload, { vision, initiator })
+  const response = await createResponses(payload, {
+    vision,
+    initiator,
+    sessionId: getHeaderSessionId(c),
+  })
 
   if (isStreamingRequested(payload) && isAsyncIterable(response)) {
     logger.debug("Forwarding native Responses stream")

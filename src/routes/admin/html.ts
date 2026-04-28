@@ -89,35 +89,12 @@ export const adminHtml = `<!DOCTYPE html>
       background: #0d1117;
       border: 1px solid #30363d;
     }
-    .account-item.active { border-color: #238636; }
     .account-avatar { width: 40px; height: 40px; border-radius: 50%; background: #30363d; }
     .account-info { min-width: 150px; }
     .account-name { font-weight: 600; }
     .account-type { font-size: 0.75rem; color: #8b949e; text-transform: capitalize; }
-    .account-badge { font-size: 0.75rem; padding: 0.125rem 0.5rem; border-radius: 9999px; background: #238636; color: #fff; }
-    .account-actions { position: relative; display: flex; gap: 0.5rem; margin-left: auto; }
-    .confirm-trigger { position: relative; display: inline-flex; }
-    .confirm-popover { position: absolute; right: 0; bottom: calc(100% + 0.625rem); width: 190px; padding: 0.75rem; border-radius: 6px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45); z-index: 20; }
-    .confirm-popover::after { content: ''; position: absolute; right: 24px; bottom: -6px; width: 10px; height: 10px; background: #161b22; border-right: 1px solid #30363d; border-bottom: 1px solid #30363d; transform: rotate(45deg); }
-    .confirm-popover-title { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; font-size: 0.875rem; }
-    .confirm-popover-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: #d29922; color: #fff; font-size: 0.75rem; font-weight: 600; }
-    .confirm-popover-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-    .confirm-popover .btn { background: #21262d; color: #c9d1d9; border-color: #30363d; }
-    .confirm-popover .btn:hover { background: #30363d; }
-    .confirm-popover .btn-confirm-primary { background: #238636; border-color: #238636; color: #fff; }
-    .confirm-popover .btn-confirm-primary:hover { background: #2ea043; }
-    .account-usage-summary {
-      flex: 1;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(120px, 1fr));
-      gap: 0.75rem;
-      align-items: center;
-      min-width: 0;
-    }
-    .account-summary-label { color: #8b949e; font-size: 0.7rem; margin-bottom: 0.125rem; }
-    .account-summary-value { color: #c9d1d9; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .account-usage-item { list-style: none; margin: 0.5rem 0 0.75rem; }
-    .account-usage-card { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 1rem; }
+    .account-badge { flex-shrink: 0; font-size: 0.75rem; padding: 0.125rem 0.5rem; border-radius: 9999px; background: #238636; color: #fff; }
+    .account-actions { position: relative; display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
     .empty-state { text-align: center; padding: 2rem; color: #8b949e; }
     .models-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; }
     .model-card { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 0.75rem; transition: all 0.15s; }
@@ -126,14 +103,6 @@ export const adminHtml = `<!DOCTYPE html>
     .model-id { font-size: 0.75rem; color: #8b949e; font-family: monospace; }
     .model-badge { display: inline-block; font-size: 0.625rem; padding: 0.125rem 0.375rem; border-radius: 9999px; background: #21262d; color: #8b949e; margin-top: 0.5rem; }
     .model-badge.premium { background: #9333ea; color: #fff; }
-    .usage-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
-    .usage-card { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 0.75rem; }
-    .usage-title { flex: 1; font-weight: 600; text-transform: capitalize; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .usage-detail { flex-shrink: 0; font-size: 0.875rem; color: #8b949e; white-space: nowrap; }
-    .usage-status.green { color: #3fb950; }
-    .usage-status.yellow { color: #d29922; }
-    .usage-status.red { color: #f85149; }
-    .usage-status.blue { color: #58a6ff; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
     .modal-overlay.active { display: flex; }
     .modal { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 1.5rem; max-width: 400px; width: 100%; }
@@ -180,6 +149,7 @@ export const adminHtml = `<!DOCTYPE html>
       color: #8b949e;
       font-size: 0.75rem;
     }
+    .request-log-table-wrap { overflow-x: auto; } .request-log-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; } .request-log-table th, .request-log-table td { padding: 0.5rem; border-bottom: 1px solid #21262d; text-align: left; white-space: nowrap; } .request-log-table th { color: #8b949e; font-weight: 500; } .request-log-path, .request-log-session { font-family: monospace; color: #c9d1d9; } .request-log-channel { color: #58a6ff; } .request-log-status.ok { color: #3fb950; } .request-log-status.fail { color: #f85149; }
   </style>
 </head>
 <body>
@@ -196,6 +166,7 @@ export const adminHtml = `<!DOCTYPE html>
       <button class="tab active" data-tab="accounts">Accounts</button>
       <button class="tab" data-tab="settings">Settings</button>
       <button class="tab" data-tab="models">Models</button>
+      <button class="tab" data-tab="request-logs">Request Logs</button>
       <button class="tab" data-tab="model-mappings">Model Mappings</button>
     </div>
     <div class="tab-content active" id="tab-accounts">
@@ -220,6 +191,18 @@ export const adminHtml = `<!DOCTYPE html>
           </button>
         </div>
         <div class="models-grid" id="modelsList"><div class="empty-state">Loading models...</div></div>
+      </div>
+    </div>
+    <div class="tab-content" id="tab-request-logs">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Request Logs</span>
+          <button class="btn btn-sm refresh-btn" id="refreshRequestLogs">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"></path></svg>
+            Refresh
+          </button>
+        </div>
+        <div id="requestLogs"><div class="empty-state">Loading request logs...</div></div>
       </div>
     </div>
     <div class="tab-content" id="tab-settings">
@@ -313,8 +296,6 @@ export const adminHtml = `<!DOCTYPE html>
   <script>
     const API_BASE = '/admin/api';
     let pollInterval = null;
-    let latestAccountsData = null;
-    let pendingSwitchAccountId = null;
     let authStatus = {
       authenticated: false,
       hasAccounts: false,
@@ -328,18 +309,11 @@ export const adminHtml = `<!DOCTYPE html>
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
     }
-    function renderCardEmptyState(elementId, message) {
-      document.getElementById(elementId).innerHTML = '<div class="empty-state">' + escHtml(message) + '</div>';
-    }
+    function renderCardEmptyState(elementId, message) { document.getElementById(elementId).innerHTML = '<div class="empty-state">' + escHtml(message) + '</div>'; }
     function getModelsUnavailableMessage() {
       return authStatus.hasAccounts
         ? 'Reconnect the active GitHub account to load models.'
         : 'Add a GitHub account to load models.';
-    }
-    function getUsageUnavailableMessage() {
-      return authStatus.hasAccounts
-        ? 'Reconnect the active GitHub account to load usage data.'
-        : 'Add a GitHub account to load usage data.';
     }
     function getModelSuggestionPlaceholder() {
       return authStatus.hasAccounts
@@ -354,6 +328,7 @@ export const adminHtml = `<!DOCTYPE html>
         document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
         if (tab.dataset.tab === 'settings') fetchSettings();
         if (tab.dataset.tab === 'models') fetchModels();
+        if (tab.dataset.tab === 'request-logs') fetchRequestLogs();
         if (tab.dataset.tab === 'model-mappings') fetchMappings();
       });
     });
@@ -434,6 +409,8 @@ export const adminHtml = `<!DOCTYPE html>
         document.getElementById('accountList').innerHTML = '<li class="empty-state">Failed to load accounts</li>';
       }
     }
+    async function fetchRequestLogs() { const btn = document.getElementById('refreshRequestLogs'); if (btn) btn.classList.add('loading'); try { const res = await fetch(API_BASE + '/request-logs'); if (!res.ok) throw new Error('Failed to load request logs'); const data = await res.json(); renderRequestLogs(data.logs || []); } catch (e) { document.getElementById('requestLogs').innerHTML = '<div class="empty-state">Failed to load request logs</div>'; } finally { if (btn) btn.classList.remove('loading'); } }
+    function renderRequestLogs(logs) { const container = document.getElementById('requestLogs'); if (!logs.length) { container.innerHTML = '<div class="empty-state">No request logs yet.</div>'; return; } const rows = logs.map(log => { const channel = log.channel?.mode === 'account' ? (log.channel.login || log.channel.accountId || 'Unknown') + ' (' + log.channel.reason + ')' : 'Legacy active account'; const statusText = log.status ? String(log.status) : (log.ok ? 'OK' : 'Failed'); const statusClass = log.ok ? 'ok' : 'fail'; const time = log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : ''; return '<tr><td>' + escHtml(time) + '</td><td class="request-log-path">' + escHtml(log.method + ' ' + log.path) + '</td><td>' + escHtml(log.model || '-') + '</td><td class="request-log-session">' + escHtml(log.sessionId || '-') + '</td><td class="request-log-channel">' + escHtml(channel) + '</td><td class="request-log-status ' + statusClass + '">' + escHtml(statusText) + '</td><td>' + escHtml(String(log.durationMs ?? 0)) + ' ms</td></tr>'; }).join(''); container.innerHTML = '<div class="request-log-table-wrap"><table class="request-log-table"><thead><tr><th>Time</th><th>Request</th><th>Model</th><th>Session</th><th>Channel</th><th>Status</th><th>Duration</th></tr></thead><tbody>' + rows + '</tbody></table></div>'; }
     async function fetchStatus() {
       try {
         const res = await fetch(API_BASE + '/auth/status');
@@ -463,72 +440,21 @@ export const adminHtml = `<!DOCTYPE html>
         return authStatus;
       }
     }
-    function renderAccounts(data, refreshUsage = true) {
-      const currentUsageContent = refreshUsage ? null : document.getElementById('usageContent')?.innerHTML;
-      const currentUsageSummary = refreshUsage ? null : document.getElementById('activeUsageSummary')?.innerHTML;
-      latestAccountsData = data;
+    function renderAccounts(data) {
       const list = document.getElementById('accountList');
       if (!data.accounts || data.accounts.length === 0) {
-        pendingSwitchAccountId = null;
         list.innerHTML = '<li class="empty-state">No accounts configured. Click "Add Account" to get started.</li>';
         return;
       }
-      const usageLoadingHtml = '<div class="usage-grid usage-grid-loading">' +
-        '<div class="usage-card"><span class="usage-title">Chat</span><span class="usage-detail">Loading...</span></div>' +
-        '<div class="usage-card"><span class="usage-title">Completions</span><span class="usage-detail">Loading...</span></div>' +
-        '<div class="usage-card"><span class="usage-title">Premium Interactions</span><span class="usage-detail">Loading...</span></div></div>';
-      const usageSectionHtml = '<li class="account-usage-item"><div class="account-usage-card">' +
-        '<div class="card-header"><span class="card-title">Usage Statistics</span>' +
-        '<button class="btn btn-sm refresh-btn" id="refreshUsage" data-action="refresh-usage">' +
-        '<svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z"></path></svg>' +
-        'Refresh</button></div><div id="usageContent">' + usageLoadingHtml + '</div>' +
-        '</div></li>';
-      const loadingUsageSummaryHtml = '<div class="account-usage-summary" id="activeUsageSummary">' +
-        '<div class="account-summary-item"><div class="account-summary-label">Plan</div><div class="account-summary-value">Loading...</div></div>' +
-        '<div class="account-summary-item"><div class="account-summary-label">Quota Reset Date</div><div class="account-summary-value">Loading...</div></div>' +
-        '<div class="account-summary-item"><div class="account-summary-label">Chat Enabled</div><div class="account-summary-value">Loading...</div></div>' +
-        '</div>';
-      const hasActiveAccount = data.accounts.some(acc => acc.isActive);
       list.innerHTML = data.accounts.map(acc => {
-        const isPendingSwitch = pendingSwitchAccountId === acc.id;
-        const switchActionHtml = acc.isActive
-          ? ''
-          : isPendingSwitch
-            ? '<span class="confirm-trigger"><button class="btn btn-sm" data-action="switch" data-id="' + escHtml(acc.id) + '">Switch</button><div class="confirm-popover" role="dialog" aria-label="Confirm account switch"><div class="confirm-popover-title"><span class="confirm-popover-icon">!</span><span>Switch account?</span></div><div class="confirm-popover-actions"><button class="btn btn-sm" data-action="cancel-switch">Cancel</button><button class="btn btn-sm btn-confirm-primary" data-action="confirm-switch" data-id="' + escHtml(acc.id) + '">Confirm</button></div></div></span>'
-            : '<button class="btn btn-sm" data-action="switch" data-id="' + escHtml(acc.id) + '">Switch</button>';
-        return '<li class="account-item ' + (acc.isActive ? 'active' : '') + '">' +
+        return '<li class="account-item">' +
           '<img class="account-avatar" src="' + escHtml(acc.avatarUrl || '') + '" alt="" onerror="this.style.display=\\'none\\'">' +
           '<div class="account-info"><div class="account-name">' + escHtml(acc.login) + '</div><div class="account-type">' + escHtml(acc.accountType) + '</div></div>' +
-          (acc.isActive ? loadingUsageSummaryHtml : '') +
-          (acc.isActive ? '<span class="account-badge">Active</span>' : '') +
           '<div class="account-actions">' +
-          switchActionHtml +
+          '<span class="account-badge">Active</span>' +
           '<button class="btn btn-sm btn-danger" data-action="delete-account" data-id="' + escHtml(acc.id) + '" data-login="' + escHtml(acc.login) + '">Delete</button>' +
-          '</div></li>' + (acc.isActive ? usageSectionHtml : '');
+          '</div></li>';
       }).join('');
-      if (!refreshUsage) {
-        const usageContent = document.getElementById('usageContent');
-        const usageSummary = document.getElementById('activeUsageSummary');
-        if (usageContent && currentUsageContent !== null && currentUsageContent !== undefined) usageContent.innerHTML = currentUsageContent;
-        if (usageSummary && currentUsageSummary !== null && currentUsageSummary !== undefined) usageSummary.innerHTML = currentUsageSummary;
-      }
-      if (refreshUsage && hasActiveAccount) void fetchUsage();
-    }
-    function requestSwitchAccount(id) {
-      pendingSwitchAccountId = id;
-      if (latestAccountsData) renderAccounts(latestAccountsData, false);
-    }
-    function cancelSwitchAccount() {
-      pendingSwitchAccountId = null;
-      if (latestAccountsData) renderAccounts(latestAccountsData, false);
-    }
-    async function switchAccount(id) {
-      pendingSwitchAccountId = null;
-      try {
-        const res = await fetch(API_BASE + '/accounts/' + id + '/activate', { method: 'POST' });
-        if (res.ok) { fetchAccounts(); fetchStatus(); }
-        else { const data = await res.json(); alert(data.error?.message || 'Failed to switch account'); }
-      } catch (e) { alert('Failed to switch account'); }
     }
     async function deleteAccount(id, login) {
       if (!confirm('Delete account "' + login + '"? This cannot be undone.')) return;
@@ -567,61 +493,6 @@ export const adminHtml = `<!DOCTYPE html>
         return '<div class="model-card"><div class="model-name">' + escHtml(model.id) + '</div><div class="model-id">' + escHtml(model.object || 'model') + '</div>' +
           (isPremium ? '<span class="model-badge premium">Premium</span>' : '') + '</div>';
       }).join('');
-    }
-    async function fetchUsage() {
-      const btn = document.getElementById('refreshUsage');
-      if (btn) btn.classList.add('loading');
-      try {
-        const status = await fetchStatus();
-        if (!status.authenticated) {
-          renderUsageSummary(null);
-          renderCardEmptyState('usageContent', getUsageUnavailableMessage());
-          return;
-        }
-        const res = await fetch('/usage');
-        if (!res.ok) throw new Error('Failed to load usage');
-        const data = await res.json();
-        renderUsage(data);
-      } catch (e) {
-        renderUsageSummary(null);
-        renderCardEmptyState('usageContent', 'Failed to load usage data. Please try again.');
-      } finally { if (btn) btn.classList.remove('loading'); }
-    }
-    function renderUsageSummary(data) {
-      const summary = document.getElementById('activeUsageSummary');
-      if (!summary) return;
-      const plan = data?.copilot_plan || 'N/A';
-      const quotaResetDate = data?.quota_reset_date ? new Date(data.quota_reset_date).toLocaleDateString() : 'N/A';
-      const chatEnabled = data ? (data.chat_enabled ? 'Yes' : 'No') : 'N/A';
-      summary.innerHTML =
-        '<div class="account-summary-item"><div class="account-summary-label">Plan</div><div class="account-summary-value">' + escHtml(plan) + '</div></div>' +
-        '<div class="account-summary-item"><div class="account-summary-label">Quota Reset Date</div><div class="account-summary-value">' + escHtml(quotaResetDate) + '</div></div>' +
-        '<div class="account-summary-item"><div class="account-summary-label">Chat Enabled</div><div class="account-summary-value">' + escHtml(chatEnabled) + '</div></div>';
-    }
-    function renderUsage(data) {
-      const container = document.getElementById('usageContent');
-      renderUsageSummary(data);
-      if (!data.quota_snapshots) {
-        container.innerHTML = '<div class="empty-state">No usage data available</div>';
-        return;
-      }
-      const quotas = data.quota_snapshots;
-      let html = '<div class="usage-grid">';
-      for (const [key, quota] of Object.entries(quotas)) {
-        const percentUsed = quota.unlimited ? 0 : (100 - quota.percent_remaining);
-        const used = quota.unlimited ? 0 : (quota.entitlement - quota.remaining);
-        let barColor = 'green';
-        if (percentUsed > 75) barColor = 'yellow';
-        if (percentUsed > 90) barColor = 'red';
-        if (quota.unlimited) barColor = 'blue';
-        const usageDetail = quota.unlimited
-          ? '<span class="usage-status blue">Unlimited</span>'
-          : used.toLocaleString() + ' / ' + quota.entitlement.toLocaleString() + ' · <span class="usage-status ' + barColor + '">' + percentUsed.toFixed(1) + '%</span> · ' + quota.remaining.toLocaleString() + ' left';
-        html += '<div class="usage-card"><span class="usage-title">' + key.replace(/_/g, ' ') + '</span>' +
-          '<span class="usage-detail">' + usageDetail + '</span></div>';
-      }
-      html += '</div>';
-      container.innerHTML = html;
     }
     function showModal(show) {
       document.getElementById('authModal').classList.toggle('active', show);
@@ -683,33 +554,23 @@ export const adminHtml = `<!DOCTYPE html>
     document.getElementById('closeAuth').addEventListener('click', () => { showModal(false); showStep(1); });
     document.getElementById('startAuth').addEventListener('click', startAuth);
     document.getElementById('refreshModels').addEventListener('click', () => fetchModels(true));
+    document.getElementById('refreshRequestLogs').addEventListener('click', fetchRequestLogs);
     document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
     document.addEventListener('click', (e) => {
       if (!(e.target instanceof Element)) return;
       const actionEl = e.target.closest('[data-action]');
       if (!actionEl) {
-        if (pendingSwitchAccountId && !e.target.closest('.confirm-trigger')) cancelSwitchAccount();
         return;
       }
       const { action, id, login, from } = actionEl.dataset;
-      if (action === 'switch' && id) {
-        requestSwitchAccount(id);
-      } else if (action === 'confirm-switch' && id) {
-        switchAccount(id);
-      } else if (action === 'cancel-switch') {
-        cancelSwitchAccount();
-      } else if (action === 'delete-account' && id) {
+      if (action === 'delete-account' && id) {
         deleteAccount(id, login || '');
       } else if (action === 'delete-mapping' && from) {
         deleteMapping(from);
-      } else if (action === 'refresh-usage') {
-        fetchUsage();
       }
     });
 
-    fetchAccounts();
-    fetchStatus();
-    fetchSettings();
+    fetchAccounts(); fetchStatus(); fetchSettings();
 
     // Model Mappings
     async function fetchMappings() {

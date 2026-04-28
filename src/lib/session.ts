@@ -7,7 +7,7 @@ import type { AnthropicMessagesPayload } from "~/routes/messages/anthropic-types
 /**
  * Converts an arbitrary string into a deterministic UUID v4-like format
  */
-const getUUID = (input: string): string => {
+export const normalizeSessionId = (input: string): string => {
   const hash = createHash("sha256").update(input).digest("hex")
   return [
     hash.slice(0, 8),
@@ -38,8 +38,13 @@ export const getRootSessionId = (
   }
 
   if (sessionId) {
-    return getUUID(sessionId)
+    return normalizeSessionId(sessionId)
   }
 
   return sessionId
+}
+
+export const getHeaderSessionId = (c: Context): string | undefined => {
+  const sessionId = c.req.header("x-session-id")
+  return sessionId ? normalizeSessionId(sessionId) : undefined
 }
