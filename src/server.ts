@@ -40,5 +40,5 @@ server.route("/v1/responses", responsesRoutes)
 // Anthropic compatible endpoints
 server.route("/v1/messages", messageRoutes)
 
-// Admin panel (localhost only)
+// Admin panel
 server.route("/admin", adminRoutes)

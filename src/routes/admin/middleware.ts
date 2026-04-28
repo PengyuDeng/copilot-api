@@ -5,62 +5,17 @@ import {
   hasValidLocalAccessAuth,
   isTrustedBrowserRequest,
   requiresLocalAccessAuth,
-  isTrustedLocalPeer,
 } from "~/lib/local-security"
 
-function readString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined
-  }
-
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : undefined
-}
-
-type PeerAddressEnv = {
-  remoteAddress?: {
-    address?: unknown
-  }
-}
-
-type PeerAddressRequest = Request & {
-  ip?: unknown
-  env?: PeerAddressEnv
-}
-
-function getRequestPeerAddress(c: Context): string | undefined {
-  const request = c.req.raw as PeerAddressRequest
-  const env = c.env as PeerAddressEnv | undefined
-
-  return (
-    readString(request.ip)
-    ?? readString(request.env?.remoteAddress?.address)
-    ?? readString(env?.remoteAddress?.address)
-  )
-}
-
 /**
- * Middleware to restrict access to localhost only.
- * Uses the real peer address exposed by Bun/srvx request context.
+ * Middleware for local management routes.
+ * Remote peer addresses are allowed; unsafe browser requests remain blocked.
  */
 export async function localOnlyMiddleware(
   c: Context,
   next: Next,
 ): Promise<Response | undefined> {
-  const peerAddress = getRequestPeerAddress(c)
   const hostHeader = c.req.header("host") ?? new URL(c.req.raw.url).host
-
-  if (!isTrustedLocalPeer(peerAddress, hostHeader)) {
-    return c.json(
-      {
-        error: {
-          message: "Forbidden: Admin panel is only accessible from localhost",
-          type: "forbidden",
-        },
-      },
-      403,
-    )
-  }
 
   if (
     !isTrustedBrowserRequest({

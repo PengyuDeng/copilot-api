@@ -76,17 +76,14 @@ describe("/token route", () => {
     })
   })
 
-  test("rejects a container bridge peer unless the relaxed mode is explicitly enabled", async () => {
+  test("allows a non-local peer by default", async () => {
     delete process.env.LOCAL_ACCESS_MODE
 
     const response = await server.fetch(createTokenRequest("172.18.0.1"))
 
-    expect(response.status).toBe(403)
+    expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
-      error: {
-        message: "Forbidden: Admin panel is only accessible from localhost",
-        type: "forbidden",
-      },
+      token: "copilot-token-test-value",
     })
   })
 
@@ -116,17 +113,14 @@ describe("/token route", () => {
     expect(response.headers.get("WWW-Authenticate")).toContain("Basic")
   })
 
-  test("rejects a non-local peer", async () => {
+  test("returns the token for a non-local peer with a non-local host", async () => {
     const response = await server.fetch(
       createTokenRequest("10.0.0.5", "192.168.1.44:4141"),
     )
 
-    expect(response.status).toBe(403)
+    expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
-      error: {
-        message: "Forbidden: Admin panel is only accessible from localhost",
-        type: "forbidden",
-      },
+      token: "copilot-token-test-value",
     })
   })
 })

@@ -13,12 +13,6 @@ const forbiddenCrossSiteResponse = {
     type: "forbidden",
   },
 }
-const forbiddenLocalOnlyResponse = {
-  error: {
-    message: "Forbidden: Admin panel is only accessible from localhost",
-    type: "forbidden",
-  },
-}
 
 function createApp(): Hono {
   const app = new Hono()
@@ -145,14 +139,14 @@ describe("localOnlyMiddleware peer checks", () => {
     expect(await response.json()).toEqual({ ok: true })
   })
 
-  test("rejects non-local peer address", async () => {
+  test("allows non-local peer address", async () => {
     const response = await requestWithPeerAddress({ peerAddress: "10.0.0.5" })
 
-    expect(response.status).toBe(403)
-    expect(await response.json()).toEqual(forbiddenLocalOnlyResponse)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true })
   })
 
-  test("rejects spoofed X-Forwarded-For when peer is non-local", async () => {
+  test("allows non-local peer with ignored X-Forwarded-For", async () => {
     const response = await requestWithPeerAddress({
       peerAddress: "10.0.0.5",
       headers: {
@@ -160,11 +154,11 @@ describe("localOnlyMiddleware peer checks", () => {
       },
     })
 
-    expect(response.status).toBe(403)
-    expect(await response.json()).toEqual(forbiddenLocalOnlyResponse)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true })
   })
 
-  test("rejects spoofed X-Real-IP when peer is non-local", async () => {
+  test("allows non-local peer with ignored X-Real-IP", async () => {
     const response = await requestWithPeerAddress({
       peerAddress: "10.0.0.5",
       headers: {
@@ -172,8 +166,8 @@ describe("localOnlyMiddleware peer checks", () => {
       },
     })
 
-    expect(response.status).toBe(403)
-    expect(await response.json()).toEqual(forbiddenLocalOnlyResponse)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true })
   })
 })
 
@@ -306,7 +300,7 @@ describe("localOnlyMiddleware browser and auth checks", () => {
     expect(response.headers.get("WWW-Authenticate")).toContain("Basic")
   })
 
-  test("rejects container bridge peers when host header is not local", async () => {
+  test("allows authenticated remote management when host header is not local", async () => {
     process.env.LOCAL_ACCESS_MODE = LOCAL_ACCESS_MODE.CONTAINER_BRIDGE
     process.env.LOCAL_ACCESS_PASSWORD = "bridge-secret"
 
@@ -318,6 +312,7 @@ describe("localOnlyMiddleware browser and auth checks", () => {
       },
     })
 
-    expect(response.status).toBe(403)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ ok: true })
   })
 })

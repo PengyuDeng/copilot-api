@@ -29,7 +29,7 @@ import {
 
 export const adminRoutes = new Hono()
 
-// Apply localhost-only middleware to all admin routes
+// Apply management-route safety middleware to all admin routes
 adminRoutes.use("*", localOnlyMiddleware)
 
 // Get all accounts
