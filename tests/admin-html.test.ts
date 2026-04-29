@@ -10,6 +10,8 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain("escHtml(acc.accountType)")
     expect(adminHtml).toContain("escHtml(model.id)")
     expect(adminHtml).toContain("escHtml(model.object || 'model')")
+    expect(adminHtml).toContain("escHtml(account.login || account.id")
+    expect(adminHtml).toContain("escHtml(account.accountType || '')")
     expect(adminHtml).toContain("escHtml(from)")
     expect(adminHtml).toContain("escHtml(to)")
     expect(adminHtml).toContain("escHtml(m.id)")
@@ -54,6 +56,8 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain('rel="icon"')
     expect(adminHtml).toContain("let authStatus =")
     expect(adminHtml).toContain("const status = await fetchStatus();")
+    expect(adminHtml).toContain("if (!status.hasAccounts)")
+    expect(adminHtml).not.toContain("if (!status.authenticated)")
     expect(adminHtml).toContain("Add a GitHub account to load models.")
     expect(adminHtml).toContain(
       'id="mappingTo" list="mappingToOptions" placeholder="Target model"',
@@ -70,7 +74,7 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain('id="proxyNotice"')
     expect(adminHtml).toContain("all outbound GitHub and Copilot requests")
     expect(adminHtml).toContain("data.httpProxy ?? ''")
-    expect(adminHtml).toContain("/v1/models?refresh=true")
+    expect(adminHtml).toContain("API_BASE + '/models?refresh=true'")
     expect(adminHtml).toContain(
       "JSON.stringify({ rateLimitSeconds, rateLimitWait, httpProxy })",
     )
@@ -111,6 +115,15 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain("numeric: true")
     expect(adminHtml).toContain("container.innerHTML = sortedModels.map")
     expect(adminHtml).not.toContain("container.innerHTML = data.data.map")
+  })
+
+  test("renders model support accounts in the models page", () => {
+    expect(adminHtml).toContain("API_BASE + '/models'")
+    expect(adminHtml).toContain("model.supportedAccounts")
+    expect(adminHtml).toContain("model-support-label")
+    expect(adminHtml).toContain("model-account-chip")
+    expect(adminHtml).toContain("Supported by")
+    expect(adminHtml).toContain("No account details")
   })
 
   test("renders request logs as a separate tab next to models", () => {

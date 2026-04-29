@@ -96,13 +96,18 @@ export const adminHtml = `<!DOCTYPE html>
     .account-badge { flex-shrink: 0; font-size: 0.75rem; padding: 0.125rem 0.5rem; border-radius: 9999px; background: #238636; color: #fff; }
     .account-actions { position: relative; display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
     .empty-state { text-align: center; padding: 2rem; color: #8b949e; }
-    .models-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; }
+    .models-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; }
     .model-card { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 0.75rem; transition: all 0.15s; }
     .model-card:hover { border-color: #58a6ff; }
     .model-name { font-weight: 600; font-size: 0.875rem; color: #58a6ff; margin-bottom: 0.25rem; word-break: break-all; }
     .model-id { font-size: 0.75rem; color: #8b949e; font-family: monospace; }
     .model-badge { display: inline-block; font-size: 0.625rem; padding: 0.125rem 0.375rem; border-radius: 9999px; background: #21262d; color: #8b949e; margin-top: 0.5rem; }
     .model-badge.premium { background: #9333ea; color: #fff; }
+    .model-meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.625rem; }
+    .model-support { display: flex; flex-wrap: wrap; gap: 0.375rem; margin-top: 0.625rem; }
+    .model-support-label { color: #8b949e; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .model-account-chip { display: inline-flex; align-items: center; gap: 0.25rem; max-width: 100%; padding: 0.1875rem 0.4375rem; border: 1px solid #30363d; border-radius: 9999px; background: #161b22; color: #c9d1d9; font-size: 0.6875rem; line-height: 1.2; }
+    .model-account-type { color: #8b949e; text-transform: capitalize; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
     .modal-overlay.active { display: flex; }
     .modal { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 1.5rem; max-width: 400px; width: 100%; }
@@ -469,11 +474,11 @@ export const adminHtml = `<!DOCTYPE html>
       btn.classList.add('loading');
       try {
         const status = await fetchStatus();
-        if (!status.authenticated) {
+        if (!status.hasAccounts) {
           renderCardEmptyState('modelsList', getModelsUnavailableMessage());
           return;
         }
-        const res = await fetch(forceRefresh ? '/v1/models?refresh=true' : '/v1/models');
+        const res = await fetch(forceRefresh ? API_BASE + '/models?refresh=true' : API_BASE + '/models');
         if (!res.ok) throw new Error('Failed to load models');
         const data = await res.json();
         renderModels(data);
@@ -490,8 +495,16 @@ export const adminHtml = `<!DOCTYPE html>
       const sortedModels = [...data.data].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
       container.innerHTML = sortedModels.map(model => {
         const isPremium = model.id.includes('o1') || model.id.includes('o3') || model.id.includes('claude');
+        const supportedAccounts = Array.isArray(model.supportedAccounts) ? model.supportedAccounts : [];
+        const supportHtml = supportedAccounts.length
+          ? '<div class="model-support">' + supportedAccounts.map(account =>
+              '<span class="model-account-chip">' + escHtml(account.login || account.id || 'Unknown') +
+              '<span class="model-account-type">' + escHtml(account.accountType || '') + '</span></span>'
+            ).join('') + '</div>'
+          : '<div class="model-support"><span class="model-account-chip">No account details</span></div>';
         return '<div class="model-card"><div class="model-name">' + escHtml(model.id) + '</div><div class="model-id">' + escHtml(model.object || 'model') + '</div>' +
-          (isPremium ? '<span class="model-badge premium">Premium</span>' : '') + '</div>';
+          '<div class="model-meta">' + (isPremium ? '<span class="model-badge premium">Premium</span>' : '') + '<span class="model-support-label">Supported by</span></div>' +
+          supportHtml + '</div>';
       }).join('');
     }
     function showModal(show) {
@@ -613,7 +626,7 @@ export const adminHtml = `<!DOCTYPE html>
       optionList.innerHTML = '';
       try {
         const status = await fetchStatus();
-        if (!status.authenticated) {
+        if (!status.hasAccounts) {
           input.placeholder = getModelSuggestionPlaceholder();
           return;
         }
