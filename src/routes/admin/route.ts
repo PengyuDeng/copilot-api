@@ -335,12 +335,22 @@ adminRoutes.post("/api/auth/poll", async (c) => {
 
 // Get current auth status
 adminRoutes.get("/api/auth/status", async (c) => {
-  const activeAccount = await getActiveAccount()
+  const data = await getAccounts()
+  let activeAccount: Account | null = null
+  if (data.activeAccountId) {
+    activeAccount =
+      data.accounts.find((account) => account.id === data.activeAccountId)
+      ?? null
+  }
+  if (!activeAccount && data.accounts.length > 0) {
+    activeAccount = data.accounts[0]
+  }
 
   return c.json({
     authenticated:
       Boolean(state.githubToken) && copilotTokenManager.hasValidToken(),
-    hasAccounts: Boolean(activeAccount),
+    hasAccounts: data.accounts.length > 0,
+    accountCount: data.accounts.length,
     activeAccount:
       activeAccount ?
         {

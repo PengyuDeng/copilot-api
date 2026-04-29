@@ -55,9 +55,13 @@ describe("adminHtml hardening", () => {
   test("avoids unauthenticated resource fetch noise and keeps manual mapping entry available", () => {
     expect(adminHtml).toContain('rel="icon"')
     expect(adminHtml).toContain("let authStatus =")
+    expect(adminHtml).toContain("accountCount: 0")
     expect(adminHtml).toContain("const status = await fetchStatus();")
     expect(adminHtml).toContain("if (!status.hasAccounts)")
     expect(adminHtml).not.toContain("if (!status.authenticated)")
+    expect(adminHtml).toContain("formatAccountCount(authStatus.accountCount)")
+    expect(adminHtml).toContain("'Connected: ' +")
+    expect(adminHtml).not.toContain("'Connected as '")
     expect(adminHtml).toContain("Add a GitHub account to load models.")
     expect(adminHtml).toContain(
       'id="mappingTo" list="mappingToOptions" placeholder="Target model"',

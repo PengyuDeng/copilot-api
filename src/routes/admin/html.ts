@@ -304,6 +304,7 @@ export const adminHtml = `<!DOCTYPE html>
     let authStatus = {
       authenticated: false,
       hasAccounts: false,
+      accountCount: 0,
       activeAccount: null,
     };
     function escHtml(s) {
@@ -324,6 +325,9 @@ export const adminHtml = `<!DOCTYPE html>
       return authStatus.hasAccounts
         ? 'Target model (reconnect account to load suggestions)'
         : 'Target model (add account to load suggestions)';
+    }
+    function formatAccountCount(count) {
+      return count + ' ' + (count === 1 ? 'account' : 'accounts');
     }
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -423,13 +427,17 @@ export const adminHtml = `<!DOCTYPE html>
         authStatus = {
           authenticated: Boolean(data.authenticated),
           hasAccounts: Boolean(data.hasAccounts),
+          accountCount: Number(data.accountCount ?? (data.activeAccount ? 1 : 0)),
           activeAccount: data.activeAccount || null,
         };
         const dot = document.getElementById('statusDot');
         const text = document.getElementById('statusText');
         if (authStatus.authenticated) {
           dot.classList.add('online');
-          text.textContent = 'Connected as ' + (authStatus.activeAccount?.login || 'Unknown');
+          text.textContent = 'Connected: ' + formatAccountCount(authStatus.accountCount);
+        } else if (authStatus.hasAccounts) {
+          dot.classList.remove('online');
+          text.textContent = formatAccountCount(authStatus.accountCount) + ' configured';
         } else {
           dot.classList.remove('online');
           text.textContent = 'Not authenticated';
@@ -439,6 +447,7 @@ export const adminHtml = `<!DOCTYPE html>
         authStatus = {
           authenticated: false,
           hasAccounts: false,
+          accountCount: 0,
           activeAccount: null,
         };
         document.getElementById('statusText').textContent = 'Connection error';
