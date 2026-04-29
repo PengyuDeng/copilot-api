@@ -44,9 +44,19 @@ interface ModelCapabilities {
   type: string
 }
 
+export interface ModelBilling {
+  is_premium: boolean
+  multiplier: number
+  restricted_to?: Array<unknown>
+}
+
 export interface Model {
   capabilities: ModelCapabilities
+  billing?: ModelBilling
   id: string
+  is_chat_default?: boolean
+  is_chat_fallback?: boolean
+  model_picker_category?: string
   model_picker_enabled: boolean
   name: string
   object: string

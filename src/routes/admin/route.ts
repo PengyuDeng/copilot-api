@@ -396,6 +396,8 @@ adminRoutes.get("/api/models", async (c) => {
         created_at: new Date(0).toISOString(),
         owned_by: model.vendor,
         display_name: model.name,
+        model_picker_category: model.model_picker_category,
+        billing: model.billing,
         supportedAccounts: state.modelSupport?.[model.id] ?? [],
       })) ?? []
 

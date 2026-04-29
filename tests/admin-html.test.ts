@@ -9,7 +9,9 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain("escHtml(acc.login)")
     expect(adminHtml).toContain("escHtml(acc.accountType)")
     expect(adminHtml).toContain("escHtml(model.id)")
-    expect(adminHtml).toContain("escHtml(model.object || 'model')")
+    expect(adminHtml).toContain("escHtml(model.display_name || model.id)")
+    expect(adminHtml).toContain("escHtml(model.owned_by || '-')")
+    expect(adminHtml).toContain("escHtml(model.model_picker_category || '-')")
     expect(adminHtml).toContain("escHtml(account.login || account.id")
     expect(adminHtml).toContain("escHtml(account.accountType || '')")
     expect(adminHtml).toContain("escHtml(from)")
@@ -117,17 +119,28 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain("const sortedModels = [...data.data].sort")
     expect(adminHtml).toContain("a.id.localeCompare(b.id")
     expect(adminHtml).toContain("numeric: true")
-    expect(adminHtml).toContain("container.innerHTML = sortedModels.map")
-    expect(adminHtml).not.toContain("container.innerHTML = data.data.map")
+    expect(adminHtml).toContain("const rows = sortedModels.map")
+    expect(adminHtml).toContain(
+      'container.innerHTML = \'<div class="models-table-wrap"',
+    )
+    expect(adminHtml).not.toContain("const rows = data.data.map")
   })
 
-  test("renders model support accounts in the models page", () => {
+  test("renders model billing and support accounts in a table", () => {
     expect(adminHtml).toContain("API_BASE + '/models'")
+    expect(adminHtml).toContain("models-table")
+    expect(adminHtml).toContain("<th>Billing</th>")
     expect(adminHtml).toContain("model.supportedAccounts")
-    expect(adminHtml).toContain("model-support-label")
+    expect(adminHtml).toContain("model.billing || {}")
+    expect(adminHtml).toContain("billing.multiplier")
+    expect(adminHtml).toContain("typeof billing.is_premium === 'boolean'")
+    expect(adminHtml).toContain("billingKnown ?")
+    expect(adminHtml).toContain("Unknown")
+    expect(adminHtml).toContain("model-billing-ratio")
     expect(adminHtml).toContain("model-account-chip")
-    expect(adminHtml).toContain("Supported by")
     expect(adminHtml).toContain("No account details")
+    expect(adminHtml).not.toContain("models-grid")
+    expect(adminHtml).not.toContain("model-card")
   })
 
   test("renders request logs as a separate tab next to models", () => {

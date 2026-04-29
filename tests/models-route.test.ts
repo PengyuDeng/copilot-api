@@ -34,6 +34,11 @@ const cachedModels: ModelsResponse = {
         type: "chat",
       },
       id: "cached-model",
+      billing: {
+        is_premium: true,
+        multiplier: 7.5,
+      },
+      model_picker_category: "powerful",
       model_picker_enabled: true,
       name: "Cached Model",
       object: "model",
@@ -108,10 +113,18 @@ describe("model routes", () => {
     globalThis.fetch = fetchMock as unknown as typeof fetch
 
     const response = await server.request("http://localhost/v1/models")
-    const body = (await response.json()) as { data: Array<{ id: string }> }
+    const body = (await response.json()) as {
+      data: Array<{
+        billing?: unknown
+        id: string
+        model_picker_category?: unknown
+      }>
+    }
 
     expect(response.status).toBe(200)
     expect(body.data.map((model) => model.id)).toEqual(["cached-model"])
+    expect(body.data[0]).not.toHaveProperty("billing")
+    expect(body.data[0]).not.toHaveProperty("model_picker_category")
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
@@ -190,7 +203,12 @@ describe("model routes", () => {
       "http://localhost/v1/models?refresh=true",
     )
     const body = (await response.json()) as {
-      data: Array<{ id: string; supportedAccounts?: unknown }>
+      data: Array<{
+        billing?: unknown
+        id: string
+        model_picker_category?: unknown
+        supportedAccounts?: unknown
+      }>
     }
 
     expect(response.status).toBe(200)
@@ -235,6 +253,10 @@ describe("model routes", () => {
     expect(body.data.every((model) => !("supportedAccounts" in model))).toBe(
       true,
     )
+    expect(body.data.every((model) => !("billing" in model))).toBe(true)
+    expect(
+      body.data.every((model) => !("model_picker_category" in model)),
+    ).toBe(true)
     expect(fetchMock).toHaveBeenCalledTimes(4)
     const loggedChannels = getRequestLogs().map((log) => log.channel)
     expect(loggedChannels).toHaveLength(2)

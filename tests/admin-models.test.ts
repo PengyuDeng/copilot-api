@@ -22,7 +22,13 @@ const tokenManager = copilotTokenManager as unknown as {
 
 const cachedModels: ModelsResponse = {
   object: "list",
-  data: [model("cached-model")],
+  data: [
+    model("cached-model", {
+      is_premium: true,
+      multiplier: 2,
+      restricted_to: ["copilot_pro"],
+    }),
+  ],
 }
 
 interface AdminModelSupportAccount {
@@ -33,7 +39,13 @@ interface AdminModelSupportAccount {
 
 interface AdminModelsBody {
   data: Array<{
+    billing?: {
+      is_premium: boolean
+      multiplier: number
+      restricted_to?: Array<unknown>
+    }
     id: string
+    model_picker_category?: string
     supportedAccounts: Array<AdminModelSupportAccount>
   }>
 }
@@ -81,6 +93,12 @@ describe("admin models API", () => {
 
     expect(response.status).toBe(200)
     expect(body.data.map((model) => model.id)).toEqual(["cached-model"])
+    expect(body.data[0]?.billing).toEqual({
+      is_premium: true,
+      multiplier: 2,
+      restricted_to: ["copilot_pro"],
+    })
+    expect(body.data[0]?.model_picker_category).toBe("test-category")
     expect(getSupportByModel(body)).toEqual({
       "cached-model": [
         {
@@ -114,7 +132,13 @@ describe("admin models API", () => {
 
         expect(url).toBe("https://api.githubcopilot.com/models")
         if (authorization === "Bearer copilot-a") {
-          return modelsResponse([model("alice-model"), model("shared-model")])
+          return modelsResponse([
+            model("alice-model", {
+              is_premium: true,
+              multiplier: 3,
+            }),
+            model("shared-model"),
+          ])
         }
         if (authorization === "Bearer copilot-b") {
           return modelsResponse([model("bob-model"), model("shared-model")])
@@ -136,6 +160,12 @@ describe("admin models API", () => {
       "bob-model",
       "shared-model",
     ])
+    expect(
+      body.data.find((model) => model.id === "alice-model")?.billing,
+    ).toEqual({
+      is_premium: true,
+      multiplier: 3,
+    })
     expect(getSupportByModel(body)).toEqual({
       "alice-model": [
         {
@@ -199,8 +229,12 @@ function account(id: string, login: string): RuntimeAccount {
   }
 }
 
-function model(id: string): ModelsResponse["data"][number] {
+function model(
+  id: string,
+  billing?: ModelsResponse["data"][number]["billing"],
+): ModelsResponse["data"][number] {
   return {
+    billing,
     capabilities: {
       family: id,
       limits: {},
@@ -210,6 +244,7 @@ function model(id: string): ModelsResponse["data"][number] {
       type: "chat",
     },
     id,
+    model_picker_category: "test-category",
     model_picker_enabled: true,
     name: id,
     object: "model",
