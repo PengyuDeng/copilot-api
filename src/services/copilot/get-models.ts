@@ -1,9 +1,12 @@
+import type { CopilotChannelSelection } from "~/lib/copilot-channel-router"
+
 import { copilotRequest } from "~/services/copilot-provider/create-provider"
 
-export const getModels = async () => {
+export const getModels = async (channelSelection?: CopilotChannelSelection) => {
   const response = await copilotRequest({
     path: "/models",
     method: "GET",
+    channelSelection,
   })
 
   return (await response.json()) as ModelsResponse

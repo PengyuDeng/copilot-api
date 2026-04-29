@@ -7,7 +7,7 @@ export interface RequestLogChannel {
   accountId?: string
   login?: string
   accountType?: string
-  reason: "session" | "random" | "legacy"
+  reason: "session" | "random" | "models" | "legacy"
 }
 
 export interface RequestLogInput {

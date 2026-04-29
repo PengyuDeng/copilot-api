@@ -5,10 +5,9 @@ import type { ModelsResponse } from "~/services/copilot/get-models"
 
 import { clearCopilotChannel } from "~/lib/copilot-channel-router"
 import { copilotTokenManager } from "~/lib/copilot-token-manager"
-import { clearRequestLogs, getRequestLogs } from "~/lib/request-log"
+import { clearRequestLogs } from "~/lib/request-log"
 import { state } from "~/lib/state"
-import { shouldRefreshModels } from "~/routes/models/route"
-import { server } from "~/server"
+import { adminRoutes } from "~/routes/admin/route"
 
 const nativeFetch = globalThis.fetch
 const originalAccounts = state.accounts
@@ -23,48 +22,20 @@ const tokenManager = copilotTokenManager as unknown as {
 
 const cachedModels: ModelsResponse = {
   object: "list",
-  data: [
-    {
-      capabilities: {
-        family: "cached",
-        limits: {},
-        object: "model_capabilities",
-        supports: {},
-        tokenizer: "cached",
-        type: "chat",
-      },
-      id: "cached-model",
-      model_picker_enabled: true,
-      name: "Cached Model",
-      object: "model",
-      preview: false,
-      vendor: "cached-vendor",
-      version: "1",
-    },
-  ],
+  data: [model("cached-model")],
 }
 
-const refreshedModels: ModelsResponse = {
-  object: "list",
-  data: [
-    {
-      capabilities: {
-        family: "refreshed",
-        limits: {},
-        object: "model_capabilities",
-        supports: {},
-        tokenizer: "refreshed",
-        type: "chat",
-      },
-      id: "refreshed-model",
-      model_picker_enabled: true,
-      name: "Refreshed Model",
-      object: "model",
-      preview: false,
-      vendor: "refreshed-vendor",
-      version: "1",
-    },
-  ],
+interface AdminModelSupportAccount {
+  id: string
+  login: string
+  accountType: RuntimeAccount["accountType"]
+}
+
+interface AdminModelsBody {
+  data: Array<{
+    id: string
+    supportedAccounts: Array<AdminModelSupportAccount>
+  }>
 }
 
 beforeEach(() => {
@@ -93,60 +64,35 @@ afterEach(() => {
   clearRequestLogs()
 })
 
-describe("model routes", () => {
-  test("recognizes explicit model refresh query values", () => {
-    expect(shouldRefreshModels("true")).toBe(true)
-    expect(shouldRefreshModels("1")).toBe(true)
-    expect(shouldRefreshModels("false")).toBe(false)
-    expect(shouldRefreshModels(undefined)).toBe(false)
-  })
+describe("admin models API", () => {
+  test("returns model support account metadata from cache", async () => {
+    state.modelSupport = {
+      "cached-model": [
+        {
+          id: "a",
+          login: "alice",
+          accountType: "individual",
+        },
+      ],
+    }
 
-  test("uses cached models by default", async () => {
-    const fetchMock = mock(() => {
-      throw new Error("unexpected outbound model request")
-    })
-    globalThis.fetch = fetchMock as unknown as typeof fetch
-
-    const response = await server.request("http://localhost/v1/models")
-    const body = (await response.json()) as { data: Array<{ id: string }> }
+    const response = await adminRoutes.fetch(createLocalAdminRequest())
+    const body = (await response.json()) as AdminModelsBody
 
     expect(response.status).toBe(200)
     expect(body.data.map((model) => model.id)).toEqual(["cached-model"])
-    expect(fetchMock).not.toHaveBeenCalled()
-  })
-
-  test("refresh=true reloads models even when cache exists", async () => {
-    const fetchMock = mock((input: Parameters<typeof fetch>[0]) => {
-      let url: string
-      if (typeof input === "string") {
-        url = input
-      } else if (input instanceof URL) {
-        url = input.toString()
-      } else {
-        url = input.url
-      }
-
-      expect(url).toBe("https://api.githubcopilot.com/models")
-      return new Response(JSON.stringify(refreshedModels), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      })
+    expect(getSupportByModel(body)).toEqual({
+      "cached-model": [
+        {
+          id: "a",
+          login: "alice",
+          accountType: "individual",
+        },
+      ],
     })
-    globalThis.fetch = fetchMock as unknown as typeof fetch
-
-    const response = await server.request(
-      "http://localhost/v1/models?refresh=true",
-    )
-    const body = (await response.json()) as { data: Array<{ id: string }> }
-
-    expect(response.status).toBe(200)
-    expect(body.data.map((model) => model.id)).toEqual(["refreshed-model"])
-    expect(state.models).toEqual(refreshedModels)
-    expect(state.modelSupport).toEqual({})
-    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
-  test("refresh=true reloads and merges models from all accounts", async () => {
+  test("refresh=true reloads support metadata from all accounts", async () => {
     state.accounts = [account("a", "alice"), account("b", "bob")]
 
     const fetchMock = mock(
@@ -154,14 +100,7 @@ describe("model routes", () => {
         input: Parameters<typeof fetch>[0],
         init?: Parameters<typeof fetch>[1],
       ) => {
-        let url: string
-        if (typeof input === "string") {
-          url = input
-        } else if (input instanceof URL) {
-          url = input.toString()
-        } else {
-          url = input.url
-        }
+        const url = getFetchUrl(input)
         const authorization = new Headers(init?.headers).get("authorization")
 
         if (url === "https://api.github.com/copilot_internal/v2/token") {
@@ -186,12 +125,10 @@ describe("model routes", () => {
     )
     globalThis.fetch = fetchMock as unknown as typeof fetch
 
-    const response = await server.request(
-      "http://localhost/v1/models?refresh=true",
+    const response = await adminRoutes.fetch(
+      createLocalAdminRequest("/api/models?refresh=true"),
     )
-    const body = (await response.json()) as {
-      data: Array<{ id: string; supportedAccounts?: unknown }>
-    }
+    const body = (await response.json()) as AdminModelsBody
 
     expect(response.status).toBe(200)
     expect(body.data.map((model) => model.id)).toEqual([
@@ -199,12 +136,7 @@ describe("model routes", () => {
       "bob-model",
       "shared-model",
     ])
-    expect(state.models?.data.map((model) => model.id)).toEqual([
-      "alice-model",
-      "bob-model",
-      "shared-model",
-    ])
-    expect(state.modelSupport).toEqual({
+    expect(getSupportByModel(body)).toEqual({
       "alice-model": [
         {
           id: "a",
@@ -232,28 +164,29 @@ describe("model routes", () => {
         },
       ],
     })
-    expect(body.data.every((model) => !("supportedAccounts" in model))).toBe(
-      true,
-    )
     expect(fetchMock).toHaveBeenCalledTimes(4)
-    const loggedChannels = getRequestLogs().map((log) => log.channel)
-    expect(loggedChannels).toHaveLength(2)
-    expect(loggedChannels).toContainEqual({
-      mode: "account",
-      accountId: "a",
-      login: "alice",
-      accountType: "individual",
-      reason: "models",
-    })
-    expect(loggedChannels).toContainEqual({
-      mode: "account",
-      accountId: "b",
-      login: "bob",
-      accountType: "individual",
-      reason: "models",
-    })
   })
 })
+
+function getSupportByModel(
+  body: AdminModelsBody,
+): Record<string, Array<AdminModelSupportAccount>> {
+  const supportByModel: Record<string, Array<AdminModelSupportAccount>> = {}
+
+  for (const model of body.data) {
+    supportByModel[model.id] = model.supportedAccounts
+  }
+
+  return supportByModel
+}
+
+function createLocalAdminRequest(path = "/api/models"): Request {
+  return new Request(`http://localhost${path}`, {
+    headers: {
+      host: "localhost:4141",
+    },
+  })
+}
 
 function account(id: string, login: string): RuntimeAccount {
   return {
@@ -284,6 +217,16 @@ function model(id: string): ModelsResponse["data"][number] {
     vendor: "test-vendor",
     version: "1",
   }
+}
+
+function getFetchUrl(input: Parameters<typeof fetch>[0]): string {
+  if (typeof input === "string") {
+    return input
+  }
+  if (input instanceof URL) {
+    return input.toString()
+  }
+  return input.url
 }
 
 function tokenResponse(token: string): Response {

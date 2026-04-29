@@ -9,6 +9,12 @@ export interface RuntimeAccount {
   createdAt: string
 }
 
+export interface ModelSupportAccount {
+  id: string
+  login: string
+  accountType: RuntimeAccount["accountType"]
+}
+
 export interface State {
   githubToken?: string
   copilotToken?: string
@@ -16,6 +22,7 @@ export interface State {
 
   accountType: string
   models?: ModelsResponse
+  modelSupport?: Record<string, Array<ModelSupportAccount>>
   vsCodeVersion?: string
 
   rateLimitWait: boolean

@@ -11,9 +11,11 @@ import {
 import { getConfig, saveConfig } from "~/lib/config"
 import { clearCopilotChannel } from "~/lib/copilot-channel-router"
 import { copilotTokenManager } from "~/lib/copilot-token-manager"
+import { forwardError } from "~/lib/error"
 import { applyHttpProxyConfig } from "~/lib/proxy"
 import { getRequestLogs, REQUEST_LOG_LIMIT } from "~/lib/request-log"
 import { state } from "~/lib/state"
+import { cacheModels } from "~/lib/utils"
 import { getDeviceCode } from "~/services/github/get-device-code"
 import { getGitHubUser } from "~/services/github/get-user"
 import { pollAccessTokenOnce } from "~/services/github/poll-access-token"
@@ -28,6 +30,10 @@ import {
 } from "./settings"
 
 export const adminRoutes = new Hono()
+
+function shouldRefreshAdminModels(value: string | undefined): boolean {
+  return value === "true" || value === "1"
+}
 
 // Apply management-route safety middleware to all admin routes
 adminRoutes.use("*", localOnlyMiddleware)
@@ -139,6 +145,8 @@ adminRoutes.delete("/api/accounts/:id", async (c) => {
   }
 
   clearCopilotChannel(accountId)
+  state.models = undefined
+  state.modelSupport = undefined
 
   // If we removed the current account, update state
   const activeAccount = await getActiveAccount()
@@ -231,6 +239,8 @@ async function createAccountFromToken(
 
   await addAccount(account)
   clearCopilotChannel(account.id)
+  state.models = undefined
+  state.modelSupport = undefined
 
   state.githubToken = token
   state.accountType = account.accountType
@@ -361,6 +371,34 @@ adminRoutes.get("/api/request-logs", (c) => {
   })
 })
 
+adminRoutes.get("/api/models", async (c) => {
+  try {
+    if (shouldRefreshAdminModels(c.req.query("refresh")) || !state.models) {
+      await cacheModels()
+    }
+
+    const models =
+      state.models?.data.map((model) => ({
+        id: model.id,
+        object: "model",
+        type: "model",
+        created: 0,
+        created_at: new Date(0).toISOString(),
+        owned_by: model.vendor,
+        display_name: model.name,
+        supportedAccounts: state.modelSupport?.[model.id] ?? [],
+      })) ?? []
+
+    return c.json({
+      object: "list",
+      data: models,
+      has_more: false,
+    })
+  } catch (error) {
+    return await forwardError(c, error)
+  }
+})
+
 adminRoutes.put("/api/settings", async (c) => {
   const body = await c.req.json<AdminSettingsUpdateBody>()
   const config = getConfig()
@@ -392,6 +430,7 @@ adminRoutes.put("/api/settings", async (c) => {
   })
   if (proxyChanged) {
     state.models = undefined
+    state.modelSupport = undefined
   }
 
   state.rateLimitSeconds =

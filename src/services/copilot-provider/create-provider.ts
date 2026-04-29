@@ -40,6 +40,8 @@ export interface CopilotRequestOptions {
   sessionId?: string
   /** Additional headers to merge (e.g. anthropic-beta) */
   extraHeaders?: Record<string, string>
+  /** Explicit account channel. Omit to route by session/random selection. */
+  channelSelection?: CopilotChannelSelection
 }
 
 /**
@@ -57,7 +59,8 @@ export async function copilotRequest(
   options: CopilotRequestOptions,
 ): Promise<Response> {
   const method = options.method ?? "POST"
-  const selection = selectCopilotChannel(options.sessionId)
+  const selection =
+    options.channelSelection ?? selectCopilotChannel(options.sessionId)
   const startedAt = Date.now()
   let responseStatus: number | undefined
   let ok = false

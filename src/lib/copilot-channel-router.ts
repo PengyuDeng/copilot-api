@@ -6,7 +6,7 @@ import type { RuntimeAccount } from "./state"
 
 import { state } from "./state"
 
-export type CopilotChannelReason = "session" | "random" | "legacy"
+export type CopilotChannelReason = "session" | "random" | "models" | "legacy"
 
 export interface AccountChannelSelection {
   mode: "account"
