@@ -90,10 +90,17 @@ export const adminHtml = `<!DOCTYPE html>
       border: 1px solid #30363d;
     }
     .account-avatar { width: 40px; height: 40px; border-radius: 50%; background: #30363d; }
-    .account-info { min-width: 150px; }
+    .account-main { flex: 1; display: flex; align-items: center; gap: 1rem; min-width: 0; }
+    .account-info { flex: 0 0 180px; min-width: 150px; }
     .account-name { font-weight: 600; }
     .account-type { font-size: 0.75rem; color: #8b949e; text-transform: capitalize; }
     .account-badge { flex-shrink: 0; font-size: 0.75rem; padding: 0.125rem 0.5rem; border-radius: 9999px; background: #238636; color: #fff; }
+    .account-usage { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; min-width: 0; }
+    .usage-chip { display: inline-flex; align-items: center; gap: 0.25rem; min-height: 1.5rem; padding: 0.1875rem 0.5rem; border: 1px solid #30363d; border-radius: 9999px; background: #161b22; font-size: 0.6875rem; line-height: 1; white-space: nowrap; }
+    .usage-chip.muted { color: #8b949e; }
+    .usage-chip.error { border-color: rgba(248, 81, 73, 0.45); background: rgba(248, 81, 73, 0.12); color: #ff7b72; }
+    .usage-label { color: #8b949e; }
+    .usage-value { color: #c9d1d9; font-weight: 600; font-variant-numeric: tabular-nums; }
     .account-actions { position: relative; display: flex; align-items: center; gap: 0.5rem; margin-left: auto; }
     .empty-state { text-align: center; padding: 2rem; color: #8b949e; }
     .models-table-wrap { overflow-x: auto; }
@@ -312,6 +319,10 @@ export const adminHtml = `<!DOCTYPE html>
       accountCount: 0,
       activeAccount: null,
     };
+    let accountsDataCache = null;
+    let accountUsageById = {};
+    let accountUsageLoading = false;
+    let accountUsageRequestId = 0;
     function escHtml(s) {
       return String(s)
         .replace(/&/g, '&amp;')
@@ -418,9 +429,34 @@ export const adminHtml = `<!DOCTYPE html>
       try {
         const res = await fetch(API_BASE + '/accounts');
         const data = await res.json();
+        accountsDataCache = data;
+        accountUsageById = {};
+        accountUsageLoading = Boolean(data.accounts && data.accounts.length);
         renderAccounts(data);
+        if (accountUsageLoading) {
+          fetchAccountUsage();
+        }
       } catch (e) {
         document.getElementById('accountList').innerHTML = '<li class="empty-state">Failed to load accounts</li>';
+      }
+    }
+    async function fetchAccountUsage() {
+      const requestId = ++accountUsageRequestId;
+      accountUsageLoading = true;
+      try {
+        const res = await fetch(API_BASE + '/accounts/usage');
+        if (!res.ok) throw new Error('Failed to load account usage');
+        const data = await res.json();
+        if (requestId !== accountUsageRequestId) return;
+        accountUsageById = Object.fromEntries((data.accounts || []).map(usage => [usage.id, usage]));
+      } catch (e) {
+        if (requestId !== accountUsageRequestId) return;
+        accountUsageById = {};
+      } finally {
+        if (requestId === accountUsageRequestId) {
+          accountUsageLoading = false;
+          if (accountsDataCache) renderAccounts(accountsDataCache);
+        }
       }
     }
     async function fetchRequestLogs() { const btn = document.getElementById('refreshRequestLogs'); if (btn) btn.classList.add('loading'); try { const res = await fetch(API_BASE + '/request-logs'); if (!res.ok) throw new Error('Failed to load request logs'); const data = await res.json(); renderRequestLogs(data.logs || []); } catch (e) { document.getElementById('requestLogs').innerHTML = '<div class="empty-state">Failed to load request logs</div>'; } finally { if (btn) btn.classList.remove('loading'); } }
@@ -468,12 +504,57 @@ export const adminHtml = `<!DOCTYPE html>
       list.innerHTML = data.accounts.map(acc => {
         return '<li class="account-item">' +
           '<img class="account-avatar" src="' + escHtml(acc.avatarUrl || '') + '" alt="" onerror="this.style.display=\\'none\\'">' +
+          '<div class="account-main">' +
           '<div class="account-info"><div class="account-name">' + escHtml(acc.login) + '</div><div class="account-type">' + escHtml(acc.accountType) + '</div></div>' +
+          renderAccountUsage(acc) +
+          '</div>' +
           '<div class="account-actions">' +
           '<span class="account-badge">Active</span>' +
           '<button class="btn btn-sm btn-danger" data-action="delete-account" data-id="' + escHtml(acc.id) + '" data-login="' + escHtml(acc.login) + '">Delete</button>' +
           '</div></li>';
       }).join('');
+    }
+    function renderAccountUsage(acc) {
+      const usage = accountUsageById[acc.id];
+      if (accountUsageLoading && !usage) {
+        return '<div class="account-usage">' +
+          '<span class="usage-chip muted"><span class="usage-label">Plan</span><span class="usage-value">Loading</span></span>' +
+          '<span class="usage-chip muted"><span class="usage-label">Reset</span><span class="usage-value">-</span></span>' +
+          '<span class="usage-chip muted"><span class="usage-label">Chat</span><span class="usage-value">-</span></span>' +
+          '<span class="usage-chip muted"><span class="usage-label">Completions</span><span class="usage-value">-</span></span>' +
+          '<span class="usage-chip muted"><span class="usage-label">Premium</span><span class="usage-value">-</span></span>' +
+          '</div>';
+      }
+      if (!usage) {
+        return '<div class="account-usage"><span class="usage-chip muted"><span class="usage-label">Usage</span><span class="usage-value">Not loaded</span></span></div>';
+      }
+      if (usage.status === 'error') {
+        return '<div class="account-usage"><span class="usage-chip error"><span class="usage-label">Usage</span><span class="usage-value">' + escHtml(usage.error || 'Failed') + '</span></span></div>';
+      }
+      const quotas = usage.quotas || {};
+      return '<div class="account-usage">' +
+        usageChip('Plan', usage.plan || '-') +
+        usageChip('Reset', usage.resetDate || '-') +
+        usageChip('Chat', formatQuotaValue(quotas.chat)) +
+        usageChip('Completions', formatQuotaValue(quotas.completions)) +
+        usageChip('Premium', formatQuotaValue(quotas.premium_interactions)) +
+        '</div>';
+    }
+    function usageChip(label, value) {
+      return '<span class="usage-chip"><span class="usage-label">' + escHtml(label) + '</span><span class="usage-value">' + escHtml(value) + '</span></span>';
+    }
+    function formatQuotaValue(quota) {
+      if (!quota) return '-';
+      if (quota.unlimited) return 'Unlimited';
+      const remaining = formatUsageNumber(quota.remaining);
+      const entitlement = formatUsageNumber(quota.entitlement);
+      if (remaining !== '-' && entitlement !== '-') return remaining + ' / ' + entitlement;
+      return remaining !== '-' ? remaining : '-';
+    }
+    function formatUsageNumber(value) {
+      if (typeof value !== 'number' || !Number.isFinite(value)) return '-';
+      if (Number.isInteger(value)) return String(value);
+      return String(Math.round(value * 10) / 10);
     }
     async function deleteAccount(id, login) {
       if (!confirm('Delete account "' + login + '"? This cannot be undone.')) return;

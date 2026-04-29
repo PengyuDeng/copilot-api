@@ -1,5 +1,6 @@
 import { Hono } from "hono"
 
+import { getAccountUsageSummaries } from "~/lib/account-usage"
 import {
   addAccount,
   getAccounts,
@@ -65,6 +66,13 @@ adminRoutes.get("/api/accounts", async (c) => {
     activeAccountId: data.activeAccountId,
     accounts: safeAccounts,
   })
+})
+
+adminRoutes.get("/api/accounts/usage", async (c) => {
+  const data = await getAccounts()
+  const accounts = await getAccountUsageSummaries(data.accounts)
+
+  return c.json({ accounts })
 })
 
 // Get current active account

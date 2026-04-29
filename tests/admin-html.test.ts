@@ -14,6 +14,8 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).toContain("escHtml(model.model_picker_category || '-')")
     expect(adminHtml).toContain("escHtml(account.login || account.id")
     expect(adminHtml).toContain("escHtml(account.accountType || '')")
+    expect(adminHtml).toContain("escHtml(usage.error || 'Failed')")
+    expect(adminHtml).toContain("escHtml(value)")
     expect(adminHtml).toContain("escHtml(from)")
     expect(adminHtml).toContain("escHtml(to)")
     expect(adminHtml).toContain("escHtml(m.id)")
@@ -110,7 +112,7 @@ describe("adminHtml hardening", () => {
     )
   })
 
-  test("does not render account quota usage in the admin UI", () => {
+  test("renders multi-account quota usage in the accounts UI", () => {
     expect(adminHtml).not.toContain('data-tab="usage"')
     expect(adminHtml).not.toContain('id="tab-usage"')
     expect(adminHtml).not.toContain("Usage Statistics")
@@ -118,10 +120,18 @@ describe("adminHtml hardening", () => {
     expect(adminHtml).not.toContain("Chat Enabled")
     expect(adminHtml).not.toContain("activeUsageSummary")
     expect(adminHtml).not.toContain("usageContent")
-    expect(adminHtml).not.toContain("fetchUsage")
-    expect(adminHtml).not.toContain("renderUsage")
     expect(adminHtml).not.toContain('data-action="refresh-usage"')
     expect(adminHtml).not.toContain("fetch('/usage')")
+    expect(adminHtml).toContain("let accountUsageById = {}")
+    expect(adminHtml).toContain("function fetchAccountUsage()")
+    expect(adminHtml).toContain("API_BASE + '/accounts/usage'")
+    expect(adminHtml).toContain("function renderAccountUsage(acc)")
+    expect(adminHtml).toContain("accountUsageById[acc.id]")
+    expect(adminHtml).toContain("formatQuotaValue(quotas.chat)")
+    expect(adminHtml).toContain("formatQuotaValue(quotas.completions)")
+    expect(adminHtml).toContain("formatQuotaValue(quotas.premium_interactions)")
+    expect(adminHtml).toContain("function formatQuotaValue(quota)")
+    expect(adminHtml).toContain("return remaining + ' / ' + entitlement")
   })
 
   test("sorts available models by name before rendering", () => {
