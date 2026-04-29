@@ -139,6 +139,18 @@ describe("local security helpers", () => {
     ).toBe(true)
   })
 
+  test("allows unsafe requests from the same remote admin origin", () => {
+    expect(
+      isTrustedBrowserRequest({
+        hostHeader: "192.168.10.9:4141",
+        method: "PUT",
+        originHeader: "http://192.168.10.9:4141",
+        requestUrl: "http://192.168.10.9/admin/api/settings",
+        secFetchSiteHeader: "same-origin",
+      }),
+    ).toBe(true)
+  })
+
   test("rejects unsafe cross-site browser requests", () => {
     expect(
       isTrustedBrowserRequest({
@@ -147,6 +159,30 @@ describe("local security helpers", () => {
         originHeader: "https://evil.example",
         requestUrl: "http://localhost/admin/api/auth/device-code",
         secFetchSiteHeader: "cross-site",
+      }),
+    ).toBe(false)
+  })
+
+  test("rejects unsafe requests from a different remote origin", () => {
+    expect(
+      isTrustedBrowserRequest({
+        hostHeader: "192.168.10.9:4141",
+        method: "PUT",
+        originHeader: "http://192.168.10.3:10808",
+        requestUrl: "http://192.168.10.9/admin/api/settings",
+        secFetchSiteHeader: "same-site",
+      }),
+    ).toBe(false)
+  })
+
+  test("rejects unsafe same-origin requests from arbitrary hostnames", () => {
+    expect(
+      isTrustedBrowserRequest({
+        hostHeader: "evil.example:4141",
+        method: "PUT",
+        originHeader: "http://evil.example:4141",
+        requestUrl: "http://evil.example/admin/api/settings",
+        secFetchSiteHeader: "same-origin",
       }),
     ).toBe(false)
   })

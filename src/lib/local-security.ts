@@ -142,7 +142,7 @@ function getExpectedRequestOrigin(
 ): string | undefined {
   const normalizedHost = normalizeAddress(hostHeader)
 
-  if (!normalizedHost || !isLocalHostHeader(normalizedHost)) {
+  if (!normalizedHost || !isTrustedAdminHostHeader(normalizedHost)) {
     return undefined
   }
 
@@ -206,7 +206,21 @@ function stripPort(hostHeader: string): string {
   }
 
   const colonIndex = hostHeader.indexOf(":")
+  if (colonIndex !== -1 && hostHeader.slice(colonIndex + 1).includes(":")) {
+    return hostHeader
+  }
+
   return colonIndex === -1 ? hostHeader : hostHeader.slice(0, colonIndex)
+}
+
+function isTrustedAdminHostHeader(hostHeader: string): boolean {
+  const host = stripPort(hostHeader)
+
+  return (
+    LOCALHOST_HOSTS.has(host)
+    || isLoopbackPeerAddress(host)
+    || isPrivatePeerAddress(host)
+  )
 }
 
 export function isLocalHostHeader(hostHeader: string | undefined): boolean {
