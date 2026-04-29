@@ -12,6 +12,7 @@ import { getConfig, saveConfig } from "~/lib/config"
 import { clearCopilotChannel } from "~/lib/copilot-channel-router"
 import { copilotTokenManager } from "~/lib/copilot-token-manager"
 import { forwardError } from "~/lib/error"
+import { isFetchTimeoutError } from "~/lib/fetch-timeout"
 import { applyHttpProxyConfig } from "~/lib/proxy"
 import { getRequestLogs, REQUEST_LOG_LIMIT } from "~/lib/request-log"
 import { state } from "~/lib/state"
@@ -33,6 +34,14 @@ export const adminRoutes = new Hono()
 
 function shouldRefreshAdminModels(value: string | undefined): boolean {
   return value === "true" || value === "1"
+}
+
+function authRequestErrorMessage(fallback: string, error: unknown): string {
+  if (isFetchTimeoutError(error)) {
+    return `${fallback}: GitHub request timed out. Check the configured HTTP proxy.`
+  }
+
+  return fallback
 }
 
 // Apply management-route safety middleware to all admin routes
@@ -181,11 +190,11 @@ adminRoutes.post("/api/auth/device-code", async (c) => {
       expiresIn: response.expires_in,
       interval: response.interval,
     })
-  } catch {
+  } catch (error) {
     return c.json(
       {
         error: {
-          message: "Failed to get device code",
+          message: authRequestErrorMessage("Failed to get device code", error),
           type: "auth_error",
         },
       },
@@ -218,9 +227,12 @@ async function createAccountFromToken(
   let user
   try {
     user = await getGitHubUser()
-  } catch {
+  } catch (error) {
     state.githubToken = previousToken
-    return { success: false, error: "Failed to get user info" }
+    return {
+      success: false,
+      error: authRequestErrorMessage("Failed to get user info", error),
+    }
   }
 
   const resolvedAccountType =

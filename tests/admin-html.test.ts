@@ -74,6 +74,15 @@ describe("adminHtml hardening", () => {
     )
   })
 
+  test("polls authorization without overlapping interval requests", () => {
+    expect(adminHtml).toContain("function scheduleAuthPoll")
+    expect(adminHtml).toContain("clearTimeout(pollInterval)")
+    expect(adminHtml).toContain("pollInterval = setTimeout")
+    expect(adminHtml).toContain("scheduleAuthPoll(deviceCode, accountType")
+    expect(adminHtml).not.toContain("setInterval(() => pollAuth")
+    expect(adminHtml).not.toContain("clearInterval(pollInterval)")
+  })
+
   test("exposes HTTP proxy settings in the admin UI", () => {
     expect(adminHtml).toContain('for="httpProxy"')
     expect(adminHtml).toContain('id="httpProxy"')

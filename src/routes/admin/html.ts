@@ -539,12 +539,23 @@ export const adminHtml = `<!DOCTYPE html>
     }
     function showModal(show) {
       document.getElementById('authModal').classList.toggle('active', show);
-      if (!show && pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+      if (!show && pollInterval) { clearTimeout(pollInterval); pollInterval = null; }
     }
     function showStep(step) {
       document.getElementById('authStep1').style.display = step === 1 ? 'block' : 'none';
       document.getElementById('authStep2').style.display = step === 2 ? 'block' : 'none';
       document.getElementById('authStep3').style.display = step === 3 ? 'block' : 'none';
+    }
+    function isAuthModalOpen() {
+      return document.getElementById('authModal').classList.contains('active');
+    }
+    function scheduleAuthPoll(deviceCode, accountType, intervalSeconds) {
+      if (!isAuthModalOpen()) return;
+      if (pollInterval) clearTimeout(pollInterval);
+      pollInterval = setTimeout(() => {
+        pollInterval = null;
+        pollAuth(deviceCode, accountType);
+      }, intervalSeconds * 1000);
     }
     async function startAuth() {
       try {
@@ -555,8 +566,8 @@ export const adminHtml = `<!DOCTYPE html>
         document.getElementById('verificationLink').href = data.verificationUri;
         showStep(2);
         const accountType = document.getElementById('accountType').value;
-        let currentInterval = data.interval || 5;
-        pollInterval = setInterval(() => pollAuth(data.deviceCode, accountType), currentInterval * 1000);
+        currentInterval = data.interval || 5;
+        scheduleAuthPoll(data.deviceCode, accountType, currentInterval);
       } catch (e) { alert('Failed to start authorization'); }
     }
     let currentInterval = 5;
@@ -570,25 +581,26 @@ export const adminHtml = `<!DOCTYPE html>
         const data = await res.json();
         console.log('Poll response:', data);
         if (data.success) {
-          clearInterval(pollInterval);
+          clearTimeout(pollInterval);
           pollInterval = null;
           showStep(3);
           setTimeout(() => { fetchAccounts(); fetchStatus(); }, 500);
         } else if (data.error) {
-          clearInterval(pollInterval);
+          clearTimeout(pollInterval);
           pollInterval = null;
           alert(data.error.message);
           showStep(1);
         } else if (data.slowDown && data.interval) {
           // GitHub asked us to slow down, update the polling interval
           console.log('Slow down requested, new interval:', data.interval);
-          clearInterval(pollInterval);
           currentInterval = data.interval;
-          pollInterval = setInterval(() => pollAuth(deviceCode, accountType), currentInterval * 1000);
+          scheduleAuthPoll(deviceCode, accountType, currentInterval);
+        } else {
+          scheduleAuthPoll(deviceCode, accountType, currentInterval);
         }
-        // If data.pending is true (without slowDown), continue polling at current interval
       } catch (e) {
         console.error('Poll error:', e);
+        scheduleAuthPoll(deviceCode, accountType, currentInterval);
       }
     }
     document.getElementById('addAccountBtn').addEventListener('click', () => { showStep(1); showModal(true); });

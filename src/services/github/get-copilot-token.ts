@@ -1,5 +1,6 @@
 import { GITHUB_API_BASE_URL, githubHeaders } from "~/lib/api-config"
 import { HTTPError } from "~/lib/error"
+import { fetchWithTimeout } from "~/lib/fetch-timeout"
 import { state } from "~/lib/state"
 
 interface GitHubTokenRequestState {
@@ -10,7 +11,7 @@ interface GitHubTokenRequestState {
 export const getCopilotToken = async (
   requestState: GitHubTokenRequestState = state,
 ) => {
-  const response = await fetch(
+  const response = await fetchWithTimeout(
     `${GITHUB_API_BASE_URL}/copilot_internal/v2/token`,
     {
       headers: githubHeaders(requestState),

@@ -5,6 +5,7 @@ import {
   GITHUB_CLIENT_ID,
   standardHeaders,
 } from "~/lib/api-config"
+import { fetchWithTimeout, isFetchTimeoutError } from "~/lib/fetch-timeout"
 
 /**
  * Single poll attempt for access token (non-blocking, for Web API use)
@@ -25,11 +26,7 @@ export async function pollAccessTokenOnce(
   }
   consola.debug("[pollAccessTokenOnce] Request body:", requestBody)
 
-  const response = await fetch(`${GITHUB_BASE_URL}/login/oauth/access_token`, {
-    method: "POST",
-    headers: standardHeaders(),
-    body: JSON.stringify(requestBody),
-  })
+  const response = await fetchAccessTokenResponse(requestBody)
 
   consola.debug("[pollAccessTokenOnce] Response status:", response.status)
   consola.debug(
@@ -114,6 +111,35 @@ export async function pollAccessTokenOnce(
     "[pollAccessTokenOnce] No token and no error, returning pending",
   )
   return { status: "pending" }
+}
+
+async function fetchAccessTokenResponse(requestBody: {
+  client_id: string
+  device_code: string
+  grant_type: string
+}): Promise<Response> {
+  try {
+    return await fetchWithTimeout(
+      `${GITHUB_BASE_URL}/login/oauth/access_token`,
+      {
+        method: "POST",
+        headers: standardHeaders(),
+        body: JSON.stringify(requestBody),
+      },
+    )
+  } catch (error) {
+    if (isFetchTimeoutError(error)) {
+      return new Response(
+        JSON.stringify({
+          error: "proxy_timeout",
+          error_description:
+            "GitHub OAuth polling timed out. Check the configured HTTP proxy.",
+        }),
+        { status: 200, headers: standardHeaders() },
+      )
+    }
+    throw error
+  }
 }
 
 export type PollResult =
