@@ -3,7 +3,7 @@
 import consola from "consola"
 import { serve, type ServerHandler } from "srvx"
 
-import { getAccounts, getActiveAccount } from "./lib/accounts"
+import { getAccounts, getActiveAccount, type Account } from "./lib/accounts"
 import { mergeConfigWithDefaults } from "./lib/config"
 import { copilotTokenManager } from "./lib/copilot-token-manager"
 import {
@@ -69,20 +69,7 @@ async function main(): Promise<void> {
   const activeAccount = await getActiveAccount()
 
   if (activeAccount) {
-    state.githubToken = activeAccount.token
-    state.accountType = activeAccount.accountType
-    consola.info(`Logged in as ${activeAccount.login}`)
-
-    if (state.showToken) {
-      consola.info("GitHub token:", activeAccount.token)
-    }
-
-    await copilotTokenManager.getToken()
-    await cacheModels()
-
-    consola.info(
-      `Available models: \n${state.models?.data.map((model) => `- ${model.id}`).join("\n")}`,
-    )
+    setActiveAccountState(activeAccount)
   } else {
     consola.warn("No account configured. Visit /admin to add an account.")
   }
@@ -114,9 +101,59 @@ async function main(): Promise<void> {
       idleTimeout: 0,
     },
   })
+
+  startBackgroundAccountWarmup(activeAccount)
 }
 
 main().catch((error: unknown) => {
   consola.error("Failed to start server:", error)
   process.exit(1)
 })
+
+function setActiveAccountState(account: Account): void {
+  state.githubToken = account.token
+  state.accountType = account.accountType
+
+  if (state.showToken) {
+    consola.info("GitHub token:", account.token)
+  }
+}
+
+function startBackgroundAccountWarmup(activeAccount: Account | null): void {
+  if (!activeAccount) {
+    return
+  }
+
+  void warmupAccountsInBackground(activeAccount).catch((error: unknown) => {
+    consola.error("Background account warmup failed:", error)
+  })
+}
+
+async function warmupAccountsInBackground(
+  activeAccount: Account,
+): Promise<void> {
+  const accountCount = state.accounts?.length ?? 0
+  consola.info(
+    `Loaded ${accountCount} account(s). Warming Copilot tokens and models in background...`,
+  )
+
+  const [tokenResult, modelsResult] = await Promise.allSettled([
+    copilotTokenManager.getToken(),
+    cacheModels(),
+  ])
+
+  if (tokenResult.status === "rejected") {
+    consola.warn(
+      `Failed to warm active account token for ${activeAccount.login}:`,
+      tokenResult.reason,
+    )
+  }
+
+  if (modelsResult.status === "rejected") {
+    throw modelsResult.reason
+  }
+
+  consola.info(
+    `Copilot warmup ready for ${activeAccount.login}: ${state.models?.data.length ?? 0} model(s) cached.`,
+  )
+}
