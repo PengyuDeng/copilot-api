@@ -15,8 +15,36 @@ export class HTTPError extends Error {
   }
 }
 
+export class RouteUnavailableError extends Error {
+  details: Array<Record<string, unknown>>
+  type: string
+
+  constructor(
+    message: string,
+    type: string,
+    details: Array<Record<string, unknown>> = [],
+  ) {
+    super(message)
+    this.type = type
+    this.details = details
+  }
+}
+
 export async function forwardError(c: Context, error: unknown) {
   consola.error("Error occurred:", error)
+
+  if (error instanceof RouteUnavailableError) {
+    return c.json(
+      {
+        error: {
+          message: error.message,
+          type: error.type,
+          details: error.details,
+        },
+      },
+      429,
+    )
+  }
 
   if (error instanceof ContextOverflowError) {
     return c.json(

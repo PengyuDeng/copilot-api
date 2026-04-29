@@ -3,11 +3,32 @@ import { randomUUID } from "node:crypto"
 export const REQUEST_LOG_LIMIT = 100
 
 export interface RequestLogChannel {
-  mode: "account" | "legacy"
+  mode: "account" | "legacy" | "none"
   accountId?: string
   login?: string
   accountType?: string
-  reason: "session" | "random" | "models" | "legacy"
+  reason:
+    | "legacy"
+    | "models"
+    | "random"
+    | "reroute_error"
+    | "reroute_quota"
+    | "session"
+    | "unavailable"
+}
+
+export interface RequestLogRouteAttempt {
+  accountId?: string
+  login?: string
+  reason: string
+  status?: number
+  result: "error" | "filtered" | "selected" | "success"
+}
+
+export interface RequestLogFilteredAccount {
+  accountId: string
+  login: string
+  reason: string
 }
 
 export interface RequestLogInput {
@@ -16,6 +37,11 @@ export interface RequestLogInput {
   model?: string
   sessionId?: string
   channel: RequestLogChannel
+  filteredAccounts?: Array<RequestLogFilteredAccount>
+  quotaBucket?: string
+  retryCount?: number
+  routeAttempts?: Array<RequestLogRouteAttempt>
+  routeReason?: string
   status?: number
   ok: boolean
   durationMs: number

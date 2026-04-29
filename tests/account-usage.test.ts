@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test"
 import type { RuntimeAccount } from "~/lib/state"
 
 import {
+  clearAccountUsageCache,
   getAccountUsageSummaries,
   normalizeAccountUsage,
 } from "~/lib/account-usage"
@@ -22,6 +23,7 @@ afterEach(() => {
   globalThis.fetch = nativeFetch
   state.githubToken = originalGithubToken
   state.vsCodeVersion = originalVsCodeVersion
+  clearAccountUsageCache()
 })
 
 describe("account usage normalization", () => {

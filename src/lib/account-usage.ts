@@ -7,6 +7,8 @@ import {
 
 import { state, type RuntimeAccount } from "./state"
 
+export const ACCOUNT_USAGE_CACHE_TTL_MS = 5 * 60 * 1000
+
 const QUOTA_IDS = [
   "chat",
   "completions",
@@ -51,10 +53,80 @@ export interface AdminAccountUsage {
   status: AccountUsageStatus
 }
 
+interface AccountUsageCacheEntry {
+  fetchedAtMs: number
+  refreshPromise: Promise<AdminAccountUsage> | null
+  usage: AdminAccountUsage
+}
+
+const accountUsageCache = new Map<string, AccountUsageCacheEntry>()
+
 export async function getAccountUsageSummaries(
   accounts: Array<RuntimeAccount>,
 ): Promise<Array<AdminAccountUsage>> {
-  return await Promise.all(accounts.map((account) => getAccountUsage(account)))
+  return await Promise.all(
+    accounts.map((account) => refreshAccountUsage(account)),
+  )
+}
+
+export function getCachedAccountUsage(
+  accountId: string,
+): AdminAccountUsage | undefined {
+  return accountUsageCache.get(accountId)?.usage
+}
+
+export function setCachedAccountUsage(
+  usage: AdminAccountUsage,
+  fetchedAtMs: number = Date.now(),
+): void {
+  accountUsageCache.set(usage.id, {
+    fetchedAtMs,
+    refreshPromise: null,
+    usage,
+  })
+}
+
+export function clearAccountUsageCache(accountId?: string): void {
+  if (accountId === undefined) {
+    accountUsageCache.clear()
+    return
+  }
+
+  accountUsageCache.delete(accountId)
+}
+
+export async function getAccountUsageCached(
+  account: RuntimeAccount,
+  nowMs: number = Date.now(),
+): Promise<AdminAccountUsage> {
+  const existing = accountUsageCache.get(account.id)
+  if (
+    existing
+    && existing.usage.status === "ok"
+    && nowMs - existing.fetchedAtMs < ACCOUNT_USAGE_CACHE_TTL_MS
+  ) {
+    return existing.usage
+  }
+
+  if (existing?.refreshPromise) {
+    return await existing.refreshPromise
+  }
+
+  const refreshPromise = refreshAccountUsage(account, nowMs)
+  if (existing) {
+    existing.refreshPromise = refreshPromise
+  }
+
+  return await refreshPromise
+}
+
+export async function refreshAccountUsage(
+  account: RuntimeAccount,
+  fetchedAtMs: number = Date.now(),
+): Promise<AdminAccountUsage> {
+  const usage = await getAccountUsage(account)
+  setCachedAccountUsage(usage, fetchedAtMs)
+  return usage
 }
 
 export async function getAccountUsage(
@@ -78,6 +150,118 @@ export async function getAccountUsage(
       quotas: {},
       error: error instanceof Error ? error.message : String(error),
     }
+  }
+}
+
+export function hasRemainingQuota(
+  usage: AdminAccountUsage | undefined,
+  quotaId: CopilotQuotaId,
+  options: { allowOverage?: boolean; amount?: number } = {},
+): boolean | undefined {
+  if (!usage || usage.status !== "ok") {
+    return undefined
+  }
+
+  const quota = usage.quotas[quotaId]
+  if (!quota) {
+    return false
+  }
+
+  if (quota.unlimited) {
+    return true
+  }
+
+  if (typeof quota.remaining === "number") {
+    const requiredAmount = options.amount ?? 1
+    if (quota.remaining >= requiredAmount) {
+      return true
+    }
+
+    return Boolean(options.allowOverage && quota.overagePermitted)
+  }
+
+  return undefined
+}
+
+export function getQuotaPercentRemaining(
+  usage: AdminAccountUsage | undefined,
+  quotaId: CopilotQuotaId,
+): number | undefined {
+  if (!usage || usage.status !== "ok") {
+    return undefined
+  }
+
+  const quota = usage.quotas[quotaId]
+  if (!quota) {
+    return undefined
+  }
+
+  if (quota.unlimited) {
+    return 100
+  }
+
+  return quota.percentRemaining
+}
+
+export function estimateAccountQuotaUse(
+  accountId: string,
+  quotaId: CopilotQuotaId,
+  amount: number,
+): void {
+  if (amount <= 0) {
+    return
+  }
+
+  const existing = accountUsageCache.get(accountId)
+  if (!existing || existing.usage.status !== "ok") {
+    return
+  }
+
+  const quota = existing.usage.quotas[quotaId]
+  if (!quota || quota.unlimited || typeof quota.remaining !== "number") {
+    return
+  }
+
+  existing.usage = {
+    ...existing.usage,
+    quotas: {
+      ...existing.usage.quotas,
+      [quotaId]: {
+        ...quota,
+        remaining: quota.remaining - amount,
+        percentRemaining: getPercentRemaining(
+          quota.remaining - amount,
+          quota.entitlement,
+        ),
+      },
+    },
+  }
+}
+
+export function markAccountQuotaExhausted(
+  accountId: string,
+  quotaId: CopilotQuotaId,
+): void {
+  const existing = accountUsageCache.get(accountId)
+  if (!existing || existing.usage.status !== "ok") {
+    return
+  }
+
+  const quota = existing.usage.quotas[quotaId]
+  if (!quota || quota.unlimited) {
+    return
+  }
+
+  existing.usage = {
+    ...existing.usage,
+    quotas: {
+      ...existing.usage.quotas,
+      [quotaId]: {
+        ...quota,
+        percentRemaining: 0,
+        remaining: 0,
+      },
+    },
   }
 }
 

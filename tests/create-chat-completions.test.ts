@@ -10,6 +10,7 @@ import { createChatCompletions } from "../src/services/copilot/create-chat-compl
 state.copilotToken = "test-token"
 state.vsCodeVersion = "1.0.0"
 state.accountType = "individual"
+state.accounts = []
 
 const tokenManager = copilotTokenManager as unknown as {
   tokenExpiresAt: number
@@ -19,11 +20,10 @@ tokenManager.tokenExpiresAt = Math.floor(Date.now() / 1000) + 3600
 // Helper to mock fetch
 const fetchMock = mock(
   (_url: string, opts: { headers: Record<string, string> }) => {
-    return {
-      ok: true,
-      json: () => ({ id: "123", object: "chat.completion", choices: [] }),
-      headers: opts.headers,
-    }
+    return new Response(
+      JSON.stringify({ id: "123", object: "chat.completion", choices: [] }),
+      { status: 200, headers: opts.headers },
+    )
   },
 )
 // @ts-expect-error - Mock fetch doesn't implement all fetch properties
