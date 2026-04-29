@@ -105,12 +105,11 @@ export const adminHtml = `<!DOCTYPE html>
     .model-display-name { color: #8b949e; word-break: break-word; }
     .model-vendor, .model-category { color: #c9d1d9; white-space: nowrap; }
     .model-category { text-transform: capitalize; }
-    .model-billing { display: inline-flex; align-items: center; gap: 0.375rem; white-space: nowrap; }
-    .model-billing-ratio { font-family: monospace; color: #c9d1d9; }
-    .model-badge { display: inline-block; font-size: 0.625rem; padding: 0.125rem 0.375rem; border-radius: 9999px; background: #21262d; color: #8b949e; }
-    .model-badge.premium { background: #9333ea; color: #fff; }
-    .model-badge.included { background: #1f6feb; color: #fff; }
-    .model-badge.unknown { background: #21262d; color: #8b949e; }
+    .model-billing { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 1.5rem; padding: 0.1875rem 0.5625rem; border: 1px solid #30363d; border-radius: 9999px; background: #21262d; color: #8b949e; font-size: 0.6875rem; font-weight: 600; line-height: 1; white-space: nowrap; }
+    .model-billing.premium { border-color: rgba(163, 113, 247, 0.45); background: rgba(147, 51, 234, 0.18); color: #d2a8ff; }
+    .model-billing.included { border-color: rgba(88, 166, 255, 0.42); background: rgba(31, 111, 235, 0.18); color: #79c0ff; }
+    .model-billing.unknown { border-color: #30363d; background: #161b22; color: #8b949e; }
+    .model-billing-ratio { padding-left: 0.375rem; border-left: 1px solid currentColor; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-variant-numeric: tabular-nums; opacity: 0.9; }
     .model-support { display: flex; flex-wrap: wrap; gap: 0.375rem; }
     .model-account-chip { display: inline-flex; align-items: center; gap: 0.25rem; max-width: 100%; padding: 0.1875rem 0.4375rem; border: 1px solid #30363d; border-radius: 9999px; background: #161b22; color: #c9d1d9; font-size: 0.6875rem; line-height: 1.2; }
     .model-account-type { color: #8b949e; text-transform: capitalize; }
@@ -517,9 +516,9 @@ export const adminHtml = `<!DOCTYPE html>
         const multiplierText = hasMultiplier ? 'x' + billing.multiplier : '-';
         const billingLabel = billingKnown ? (isPremium ? 'Premium' : 'Included') : 'Unknown';
         const billingClass = billingKnown ? (isPremium ? 'premium' : 'included') : 'unknown';
-        const billingHtml = '<span class="model-billing">' +
-          '<span class="model-billing-ratio">' + escHtml(multiplierText) + '</span>' +
-          '<span class="model-badge ' + billingClass + '">' + billingLabel + '</span>' +
+        const billingHtml = '<span class="model-billing ' + billingClass + '">' +
+          '<span>' + billingLabel + '</span>' +
+          (billingKnown ? '<span class="model-billing-ratio">' + escHtml(multiplierText) + '</span>' : '') +
           '</span>';
         const supportedAccounts = Array.isArray(model.supportedAccounts) ? model.supportedAccounts : [];
         const supportHtml = supportedAccounts.length
