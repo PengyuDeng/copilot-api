@@ -28,6 +28,7 @@ const cachedModels: ModelsResponse = {
       multiplier: 2,
       restricted_to: ["copilot_pro"],
     }),
+    model("gpt-4o-mini"),
   ],
 }
 
@@ -44,6 +45,7 @@ interface AdminModelsBody {
       multiplier: number
       restricted_to?: Array<unknown>
     }
+    freeLimitedChat: boolean
     id: string
     model_picker_category?: string
     supportedAccounts: Array<AdminModelSupportAccount>
@@ -92,12 +94,17 @@ describe("admin models API", () => {
     const body = (await response.json()) as AdminModelsBody
 
     expect(response.status).toBe(200)
-    expect(body.data.map((model) => model.id)).toEqual(["cached-model"])
+    expect(body.data.map((model) => model.id)).toEqual([
+      "cached-model",
+      "gpt-4o-mini",
+    ])
     expect(body.data[0]?.billing).toEqual({
       is_premium: true,
       multiplier: 2,
       restricted_to: ["copilot_pro"],
     })
+    expect(body.data[0]?.freeLimitedChat).toBe(false)
+    expect(body.data[1]?.freeLimitedChat).toBe(true)
     expect(body.data[0]?.model_picker_category).toBe("test-category")
     expect(getSupportByModel(body)).toEqual({
       "cached-model": [
@@ -107,6 +114,7 @@ describe("admin models API", () => {
           accountType: "individual",
         },
       ],
+      "gpt-4o-mini": [],
     })
   })
 

@@ -485,10 +485,12 @@ const FREE_LIMITED_CHAT_MODELS = new Set([
   "gpt-4.1",
   "gpt-41-copilot",
   "gpt-4o",
+  "gpt-4o-mini",
+  "gpt-4o-mini-2024-07-18",
   "gpt-5-mini",
 ])
 
-function isFreeLimitedChatModel(model: string | undefined): boolean {
+export function isFreeLimitedChatModel(model: string | undefined): boolean {
   return model ? FREE_LIMITED_CHAT_MODELS.has(model) : false
 }
 

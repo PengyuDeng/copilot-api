@@ -424,9 +424,9 @@ describe("Copilot channel routing eligibility filters", () => {
     ])
   })
 
-  test("does not require premium quota for free limited chat models", async () => {
+  test("does not require premium quota for free limited gpt-4o-mini", async () => {
     state.accounts = [account("a", "alice")]
-    state.models = modelsResponse([premiumModel("gpt-5-mini", 1)])
+    state.models = modelsResponse([premiumModel("gpt-4o-mini", 1)])
     setCachedAccountUsage(
       accountUsage({
         id: "a",
@@ -437,7 +437,7 @@ describe("Copilot channel routing eligibility filters", () => {
 
     const selected = await selectCopilotChannelForRequest({
       path: "/chat/completions",
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       random: () => 0,
     })
 

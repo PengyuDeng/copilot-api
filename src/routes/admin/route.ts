@@ -10,7 +10,10 @@ import {
   type Account,
 } from "~/lib/accounts"
 import { getConfig, saveConfig } from "~/lib/config"
-import { clearCopilotChannel } from "~/lib/copilot-channel-router"
+import {
+  clearCopilotChannel,
+  isFreeLimitedChatModel,
+} from "~/lib/copilot-channel-router"
 import { copilotTokenManager } from "~/lib/copilot-token-manager"
 import { forwardError } from "~/lib/error"
 import { isFetchTimeoutError } from "~/lib/fetch-timeout"
@@ -418,6 +421,7 @@ adminRoutes.get("/api/models", async (c) => {
         display_name: model.name,
         model_picker_category: model.model_picker_category,
         billing: model.billing,
+        freeLimitedChat: isFreeLimitedChatModel(model.id),
         supportedAccounts: state.modelSupport?.[model.id] ?? [],
       })) ?? []
 

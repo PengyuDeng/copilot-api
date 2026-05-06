@@ -109,7 +109,9 @@ export const adminHtml = `<!DOCTYPE html>
     .models-table th { color: #8b949e; font-weight: 500; white-space: nowrap; }
     .models-table tbody tr:hover { background: #0d1117; }
     .model-name { font-weight: 600; color: #58a6ff; margin-bottom: 0.25rem; word-break: break-all; }
+    .model-title { display: flex; align-items: center; flex-wrap: wrap; gap: 0.375rem; margin-bottom: 0.25rem; }
     .model-display-name { color: #8b949e; word-break: break-word; }
+    .model-free-badge { display: inline-flex; align-items: center; min-height: 1.25rem; padding: 0.125rem 0.4375rem; border: 1px solid rgba(63, 185, 80, 0.45); border-radius: 9999px; background: rgba(46, 160, 67, 0.16); color: #7ee787; font-size: 0.6875rem; font-weight: 700; line-height: 1; white-space: nowrap; }
     .model-vendor, .model-category { color: #c9d1d9; white-space: nowrap; }
     .model-category { text-transform: capitalize; }
     .model-billing { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 1.5rem; padding: 0.1875rem 0.5625rem; border: 1px solid #30363d; border-radius: 9999px; background: #21262d; color: #8b949e; font-size: 0.6875rem; font-weight: 600; line-height: 1; white-space: nowrap; }
@@ -609,8 +611,9 @@ export const adminHtml = `<!DOCTYPE html>
               '<span class="model-account-type">' + escHtml(account.accountType || '') + '</span></span>'
             ).join('') + '</div>'
           : '<div class="model-support"><span class="model-account-chip">No account details</span></div>';
+        const freeBadgeHtml = model.freeLimitedChat ? '<span class="model-free-badge">Free</span>' : '';
         return '<tr>' +
-          '<td><div class="model-name">' + escHtml(model.id) + '</div><div class="model-display-name">' + escHtml(model.display_name || model.id) + '</div></td>' +
+          '<td><div class="model-title"><span class="model-name">' + escHtml(model.id) + '</span>' + freeBadgeHtml + '</div><div class="model-display-name">' + escHtml(model.display_name || model.id) + '</div></td>' +
           '<td class="model-vendor">' + escHtml(model.owned_by || '-') + '</td>' +
           '<td class="model-category">' + escHtml(model.model_picker_category || '-') + '</td>' +
           '<td>' + billingHtml + '</td>' +
