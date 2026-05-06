@@ -423,6 +423,29 @@ describe("Copilot channel routing eligibility filters", () => {
       },
     ])
   })
+
+  test("does not require premium quota for free limited chat models", async () => {
+    state.accounts = [account("a", "alice")]
+    state.models = modelsResponse([premiumModel("gpt-5-mini", 1)])
+    setCachedAccountUsage(
+      accountUsage({
+        id: "a",
+        login: "alice",
+        chatRemaining: 10,
+      }),
+    )
+
+    const selected = await selectCopilotChannelForRequest({
+      path: "/chat/completions",
+      model: "gpt-5-mini",
+      random: () => 0,
+    })
+
+    expect(selected.mode === "account" ? selected.account.id : undefined).toBe(
+      "a",
+    )
+    expect(selected.mode === "account" ? selected.premiumMultiplier : 1).toBe(0)
+  })
 })
 
 describe("Copilot channel load balancing", () => {

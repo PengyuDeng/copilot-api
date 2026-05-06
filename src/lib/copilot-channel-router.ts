@@ -87,13 +87,13 @@ interface RouteRequestContext {
 
 interface RouteCandidate {
   account: RuntimeAccount
+  premiumMultiplier: number
   usageKnown: boolean
 }
 
 interface RouteCandidates {
   candidates: Array<RouteCandidate>
   filteredAccounts: Array<RouteFilteredAccount>
-  premiumMultiplier: number
   quotaBucket?: CopilotQuotaId
 }
 
@@ -227,7 +227,7 @@ export async function selectCopilotChannelForRequest(
     reason,
     routeReason: reason,
     filteredAccounts: routeCandidates.filteredAccounts,
-    premiumMultiplier: routeCandidates.premiumMultiplier,
+    premiumMultiplier: selected.premiumMultiplier,
     quotaBucket: routeCandidates.quotaBucket,
   }
 }
@@ -273,7 +273,7 @@ async function getRouteCandidates(
 ): Promise<RouteCandidates> {
   const nowMs = context.nowMs ?? Date.now()
   const quotaBucket = getQuotaBucketForPath(context.path)
-  const premiumMultiplier = getPremiumMultiplier(context.model)
+  const modelPremiumMultiplier = getPremiumMultiplier(context.model)
   const knownCandidates: Array<RouteCandidate> = []
   const unknownCandidates: Array<RouteCandidate> = []
   const filteredAccounts: Array<RouteFilteredAccount> = []
@@ -295,11 +295,20 @@ async function getRouteCandidates(
     }
 
     if (!quotaBucket) {
-      knownCandidates.push({ account, usageKnown: false })
+      knownCandidates.push({
+        account,
+        premiumMultiplier: modelPremiumMultiplier,
+        usageKnown: false,
+      })
       continue
     }
 
     const usage = await getAccountUsageCached(account, nowMs)
+    const premiumMultiplier = getEffectivePremiumMultiplier(
+      context.model,
+      modelPremiumMultiplier,
+      usage,
+    )
     const chatStatus = hasRemainingQuota(usage, quotaBucket)
     const premiumStatus =
       premiumMultiplier > 0 ?
@@ -322,18 +331,17 @@ async function getRouteCandidates(
     }
 
     if (chatStatus === undefined || premiumStatus === undefined) {
-      unknownCandidates.push({ account, usageKnown: false })
+      unknownCandidates.push({ account, premiumMultiplier, usageKnown: false })
       continue
     }
 
-    knownCandidates.push({ account, usageKnown: true })
+    knownCandidates.push({ account, premiumMultiplier, usageKnown: true })
   }
 
   return {
     candidates:
       knownCandidates.length > 0 ? knownCandidates : unknownCandidates,
     filteredAccounts,
-    premiumMultiplier,
     quotaBucket,
   }
 }
@@ -362,7 +370,7 @@ function getReusableSessionSelection(
     reason: "session",
     routeReason: "session",
     filteredAccounts: routeCandidates.filteredAccounts,
-    premiumMultiplier: routeCandidates.premiumMultiplier,
+    premiumMultiplier: existing.premiumMultiplier,
     quotaBucket: routeCandidates.quotaBucket,
   }
 }
@@ -453,6 +461,35 @@ function getPremiumMultiplier(model: string | undefined): number {
     ) ?
       billing.multiplier
     : 0
+}
+
+function getEffectivePremiumMultiplier(
+  model: string | undefined,
+  premiumMultiplier: number,
+  usage: Awaited<ReturnType<typeof getAccountUsageCached>>,
+): number {
+  if (
+    premiumMultiplier > 0
+    && usage.status === "ok"
+    && usage.isFreeLimited
+    && isFreeLimitedChatModel(model)
+  ) {
+    return 0
+  }
+
+  return premiumMultiplier
+}
+
+const FREE_LIMITED_CHAT_MODELS = new Set([
+  "claude-haiku-4.5",
+  "gpt-4.1",
+  "gpt-41-copilot",
+  "gpt-4o",
+  "gpt-5-mini",
+])
+
+function isFreeLimitedChatModel(model: string | undefined): boolean {
+  return model ? FREE_LIMITED_CHAT_MODELS.has(model) : false
 }
 
 function isModelSupportedByAccount(
